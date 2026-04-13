@@ -63,3 +63,33 @@ def alle_fahrer():
     fahrer = db.query(Fahrer).all()
     db.close()
     return fahrer
+
+class ZeitCreate(BaseModel):
+    fahrer_id: int
+    rundenzeit: float
+    strafzeit: float = 0.0
+
+@app.post("/zeiten")
+def zeit_eintragen(z: ZeitCreate):
+    db = SessionLocal()
+    fahrer = db.query(Fahrer).filter(Fahrer.id == z.fahrer_id).first()
+    if not fahrer:
+        db.close()
+        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
+    neue_zeit = Zeit(
+        fahrer_id=z.fahrer_id,
+        rundenzeit=z.rundenzeit,
+        strafzeit=z.strafzeit,
+        gesamtzeit=z.rundenzeit + z.strafzeit
+    )
+    db.add(neue_zeit)
+    db.commit()
+    db.close()
+    return {"message": f"Zeit eingetragen", "gesamtzeit": neue_zeit.gesamtzeit}
+
+@app.get("/zeiten/{fahrer_id}")
+def zeiten_von_fahrer(fahrer_id: int):
+    db = SessionLocal()
+    zeiten = db.query(Zeit).filter(Zeit.fahrer_id == fahrer_id).all()
+    db.close()
+    return zeiten
