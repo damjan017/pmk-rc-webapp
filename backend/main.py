@@ -1,4 +1,7 @@
 from fastapi import FastAPI, HTTPException
+import qrcode
+import io
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
@@ -55,7 +58,8 @@ def fahrer_registrieren(fahrer: FahrerCreate):
     db.commit()
     db.refresh(neuer_fahrer)
     db.close()
-    return {"message": f"Fahrer {fahrer.name} registriert!", "startnummer": neuer_fahrer.startnummer}
+    qr_url = f"http://127.0.0.1:8000/fahrer/{neuer_fahrer.id}/qrcode"
+    return {"message": f"Fahrer {fahrer.name} registriert!", "startnummer": neuer_fahrer.startnummer, "qr_code_url": qr_url}
 
 @app.get("/fahrer")
 def alle_fahrer():
@@ -93,3 +97,38 @@ def zeiten_von_fahrer(fahrer_id: int):
     zeiten = db.query(Zeit).filter(Zeit.fahrer_id == fahrer_id).all()
     db.close()
     return zeiten
+
+@app.get("/fahrer/{fahrer_id}/qrcode")
+def qrcode_generieren(fahrer_id: int):
+    db = SessionLocal()
+    fahrer = db.query(Fahrer).filter(Fahrer.id == fahrer_id).first()
+    db.close()
+    if not fahrer:
+        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
+    inhalt = f"Fahrer: {fahrer.name}\nStartnummer: {fahrer.startnummer}\nFahrzeug: {fahrer.fahrzeug}"
+    img = qrcode.make(inhalt)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")
+
+@app.get("/leaderboard")
+def leaderboard():
+    db = SessionLocal()
+    fahrer_liste = db.query(Fahrer).all()
+    ergebnis = []
+    for fahrer in fahrer_liste:
+        zeiten = db.query(Zeit).filter(Zeit.fahrer_id == fahrer.id).all()
+        if zeiten:
+            beste_zeit = min(z.gesamtzeit for z in zeiten)
+        else:
+            beste_zeit = None
+        ergebnis.append({
+            "name": fahrer.name,
+            "startnummer": fahrer.startnummer,
+            "fahrzeug": fahrer.fahrzeug,
+            "beste_gesamtzeit": beste_zeit
+        })
+    db.close()
+    ergebnis.sort(key=lambda x: (x["beste_gesamtzeit"] is None, x["beste_gesamtzeit"]))
+    return ergebnis
