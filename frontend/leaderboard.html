@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC-Car Rally — Leaderboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f4f4;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .header {
+    max-width: 700px;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 { font-size: 22px; color: #2B2B2B; }
+  .header p { font-size: 13px; color: #888; margin-top: 2px; }
+  .live-dot {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #2E7D32; font-weight: 600;
+  }
+  .live-dot::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: #2E7D32;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    max-width: 700px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .table-header {
+    display: grid;
+    grid-template-columns: 60px 1fr 140px 120px;
+    padding: 12px 20px;
+    background: #2B2B2B;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 60px 1fr 140px 120px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #F0F0F0;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .row:hover { background: #FAFAFA; }
+  .row:last-child { border-bottom: none; }
+  .row.first { background: #FFF8E1; }
+  .row.second { background: #F5F5F5; }
+  .row.third { background: #FFF3E0; }
+  .place {
+    font-size: 20px;
+    font-weight: 800;
+    color: #CCCCCC;
+  }
+  .place.p1 { color: #C8A415; }
+  .place.p2 { color: #888; }
+  .place.p3 { color: #CD7F32; }
+  .name { font-weight: 600; color: #2B2B2B; font-size: 15px; }
+  .fahrzeug { font-size: 12px; color: #888; margin-top: 2px; }
+  .checkin {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  .checkin.ja { background: #E8F5E9; color: #2E7D32; }
+  .checkin.nein { background: #F5F5F5; color: #888; }
+  .zeit {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #2B2B2B;
+    text-align: right;
+  }
+  .zeit.keine { color: #CCC; font-size: 13px; font-family: inherit; font-weight: 400; }
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+  }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+  .nav-links {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #888;
+  }
+  .nav-links a {
+    color: #C8A415;
+    text-decoration: none;
+    font-weight: 600;
+    margin: 0 8px;
+  }
+  .refresh-btn {
+    background: none;
+    border: 1.5px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #555;
+  }
+  .refresh-btn:hover { border-color: #C8A415; color: #C8A415; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🏁 Live-Leaderboard</h1>
+    <p>RC-Car Rally 2026</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="live-dot">Live</div>
+    <button class="refresh-btn" onclick="laden()">↻ Aktualisieren</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-header">
+    <span>Platz</span>
+    <span>Fahrer</span>
+    <span>Status</span>
+    <span style="text-align:right">Beste Zeit</span>
+  </div>
+  <div id="leaderboardBody">
+    <div class="empty">
+      <div class="icon">⏳</div>
+      <p>Wird geladen...</p>
+    </div>
+  </div>
+</div>
+
+<div class="nav-links">
+  <a href="index.html">📝 Registrierung</a>
+  <a href="dashboard.html">⚙️ Dashboard</a>
+</div>
+
+<script>
+function formatZeit(sek) {
+  if (sek === null || sek === undefined) return null;
+  const min = Math.floor(sek / 60);
+  const s = (sek % 60).toFixed(2);
+  return min > 0 ? `${min}:${s.padStart(5,'0')} min` : `${s} s`;
+}
+
+async function laden() {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/leaderboard');
+    const daten = await res.json();
+    const body = document.getElementById('leaderboardBody');
+
+    if (daten.length === 0) {
+      body.innerHTML = `<div class="empty"><div class="icon">🏎️</div><p>Noch keine Fahrer registriert.</p></div>`;
+      return;
+    }
+
+    const plaetze = ['🥇','🥈','🥉'];
+    const klassen = ['first','second','third'];
+
+    body.innerHTML = daten.map((f, i) => {
+      const platzIcon = i < 3 ? plaetze[i] : (i+1);
+      const platzKlasse = i < 3 ? klassen[i] : '';
+      const platzTextKlasse = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : '';
+      const zeitStr = formatZeit(f.beste_gesamtzeit);
+      return `
+        <div class="row ${platzKlasse}">
+          <span class="place ${platzTextKlasse}">${platzIcon}</span>
+          <div>
+            <div class="name">${f.name}</div>
+            <div class="fahrzeug">${f.fahrzeug} · #${f.startnummer}</div>
+          </div>
+          <div>
+            <span class="checkin ${f.eingecheckt ? 'ja' : 'nein'}">
+              ${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}
+            </span>
+          </div>
+          <div class="zeit ${zeitStr ? '' : 'keine'}">
+            ${zeitStr || 'Keine Zeit'}
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('leaderboardBody').innerHTML =
+      `<div class="empty"><div class="icon">⚠️</div><p>Server nicht erreichbar.</p></div>`;
+  }
+}
+
+laden();
+setInterval(laden, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC-Car Rally — Registrierung</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f4f4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .logo {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .logo h1 {
+    font-size: 24px;
+    color: #2B2B2B;
+    font-weight: 700;
+  }
+  .logo p {
+    color: #888;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .gold-line {
+    height: 3px;
+    background: #C8A415;
+    border-radius: 2px;
+    margin: 0 auto 30px;
+    width: 60px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+    margin-top: 18px;
+  }
+  input[type="text"], input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #E0E0E0;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #2B2B2B;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus { border-color: #C8A415; }
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 22px;
+    padding: 14px;
+    background: #FFF8E1;
+    border-radius: 8px;
+    border: 1px solid #C8A415;
+  }
+  .checkbox-row input[type="checkbox"] {
+    width: 18px; height: 18px;
+    margin-top: 2px;
+    accent-color: #C8A415;
+    flex-shrink: 0;
+  }
+  .checkbox-row span {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.5;
+  }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: #2B2B2B;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: background 0.2s;
+  }
+  .btn:hover { background: #C8A415; }
+  .btn:disabled { background: #ccc; cursor: not-allowed; }
+  .success {
+    display: none;
+    text-align: center;
+    padding: 24px;
+  }
+  .success .badge {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .success h2 { color: #2E7D32; margin-bottom: 8px; }
+  .success p { color: #555; margin-bottom: 6px; }
+  .startnummer {
+    font-size: 52px;
+    font-weight: 800;
+    color: #C8A415;
+    margin: 10px 0;
+  }
+  .qr-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: #f4f4f4;
+    border: 1.5px solid #E0E0E0;
+    border-radius: 8px;
+    color: #2B2B2B;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .error-msg {
+    display: none;
+    background: #FFEBEE;
+    color: #C62828;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    margin-top: 16px;
+    border: 1px solid #FFCDD2;
+  }
+  .nav-links {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #888;
+  }
+  .nav-links a {
+    color: #C8A415;
+    text-decoration: none;
+    font-weight: 600;
+    margin: 0 8px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <h1>🏁 RC-Car Rally</h1>
+    <p>Online-Registrierung</p>
+    <div class="gold-line"></div>
+  </div>
+
+  <div id="formSection">
+    <label for="name">Vollständiger Name</label>
+    <input type="text" id="name" placeholder="z.B. Max Mustermann">
+
+    <label for="email">E-Mail-Adresse</label>
+    <input type="email" id="email" placeholder="z.B. max@email.de">
+
+    <label for="fahrzeug">Fahrzeugbezeichnung</label>
+    <input type="text" id="fahrzeug" placeholder="z.B. Traxxas Slash 4x4">
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="einwilligung">
+      <span>Ich stimme der Verarbeitung meiner Daten für die Durchführung der Rally zu. Die Daten werden nach dem Event gelöscht (DSGVO).</span>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="btn" onclick="registrieren()" id="submitBtn">
+      Jetzt anmelden →
+    </button>
+  </div>
+
+  <div class="success" id="successSection">
+    <div class="badge">✅</div>
+    <h2>Erfolgreich angemeldet!</h2>
+    <p>Deine Startnummer:</p>
+    <div class="startnummer" id="startnummerAnzeige"></div>
+    <p style="color:#888;font-size:13px">Zeige diesen QR-Code beim Check-in vor</p>
+    <br>
+    <a class="qr-btn" id="qrLink" target="_blank">📱 QR-Code anzeigen</a>
+  </div>
+
+  <div class="nav-links">
+    <a href="leaderboard.html">📊 Leaderboard</a>
+    <a href="dashboard.html">⚙️ Dashboard</a>
+  </div>
+</div>
+
+<script>
+async function registrieren() {
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const fahrzeug = document.getElementById('fahrzeug').value.trim();
+  const einwilligung = document.getElementById('einwilligung').checked;
+  const errorMsg = document.getElementById('errorMsg');
+  const btn = document.getElementById('submitBtn');
+
+  errorMsg.style.display = 'none';
+
+  if (!name || !email || !fahrzeug) {
+    errorMsg.textContent = 'Bitte alle Felder ausfüllen.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  if (!einwilligung) {
+    errorMsg.textContent = 'Bitte die Datenschutz-Einwilligung bestätigen.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Wird registriert...';
+
+  try {
+    const res = await fetch('http://127.0.0.1:8000/fahrer', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, email, fahrzeug, einwilligung})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorMsg.textContent = data.detail || 'Fehler bei der Registrierung.';
+      errorMsg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Jetzt anmelden →';
+      return;
+    }
+    document.getElementById('startnummerAnzeige').textContent = '#' + data.startnummer;
+    document.getElementById('qrLink').href = data.qr_code_url;
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successSection').style.display = 'block';
+  } catch(e) {
+    errorMsg.textContent = 'Server nicht erreichbar. Ist der Backend-Server gestartet?';
+    errorMsg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Jetzt anmelden →';
+  }
+}
+</script>
+</body>
+</html>
