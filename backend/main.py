@@ -56,12 +56,10 @@ class StrafzeitCreate(BaseModel):
     strafzeit: float
     grund: str
 
-# ── Basis ────────────────────────────────────────────
 @app.get("/")
 def root():
     return {"message": "PMK RC-Rally API läuft!"}
 
-# ── Fahrer ───────────────────────────────────────────
 @app.post("/fahrer")
 def fahrer_registrieren(fahrer: FahrerCreate):
     if not fahrer.einwilligung:
@@ -106,7 +104,6 @@ def qrcode_generieren(fahrer_id: int):
     buf.seek(0)
     return StreamingResponse(buf, media_type="image/png")
 
-# ── Check-in ─────────────────────────────────────────
 @app.post("/checkin/{fahrer_id}")
 def checkin(fahrer_id: int):
     db = SessionLocal()
@@ -123,7 +120,6 @@ def checkin(fahrer_id: int):
     return {"message": f"Fahrer {fahrer.name} erfolgreich eingecheckt!",
             "startnummer": fahrer.startnummer}
 
-# ── Zeiten ───────────────────────────────────────────
 @app.post("/zeiten")
 def zeit_eintragen(z: ZeitCreate):
     db = SessionLocal()
@@ -149,7 +145,6 @@ def zeiten_von_fahrer(fahrer_id: int):
     db.close()
     return zeiten
 
-# ── Strafzeiten ──────────────────────────────────────
 @app.post("/strafzeiten")
 def strafzeit_hinzufuegen(s: StrafzeitCreate):
     db = SessionLocal()
@@ -157,14 +152,12 @@ def strafzeit_hinzufuegen(s: StrafzeitCreate):
     if not fahrer:
         db.close()
         raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
-    # Strafzeit speichern
     neue_strafe = Strafzeit(
         fahrer_id=s.fahrer_id,
         strafzeit=s.strafzeit,
         grund=s.grund
     )
     db.add(neue_strafe)
-    # Letzte Zeit aktualisieren
     letzte_zeit = db.query(Zeit).filter(
         Zeit.fahrer_id == s.fahrer_id
     ).order_by(Zeit.id.desc()).first()
@@ -176,7 +169,6 @@ def strafzeit_hinzufuegen(s: StrafzeitCreate):
     return {"message": f"Strafzeit von {s.strafzeit}s für {fahrer.name} eingetragen",
             "grund": s.grund}
 
-# ── Leaderboard ──────────────────────────────────────
 @app.get("/leaderboard")
 def leaderboard():
     db = SessionLocal()
