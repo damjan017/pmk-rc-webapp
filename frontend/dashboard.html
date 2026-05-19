@@ -6,200 +6,267 @@
 <title>RC-Car Rally — Rennleiter Dashboard</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f4f4; min-height: 100vh; padding: 20px; }
-  .page-header { max-width: 900px; margin: 0 auto 24px; display:flex; justify-content:space-between; align-items:flex-start; }
-  .page-header h1 { font-size: 22px; color: #2B2B2B; }
-  .page-header p { font-size: 13px; color: #888; margin-top: 2px; }
-  .status-banner {
-    display:none; max-width:900px; margin: 0 auto 16px;
-    padding: 14px 20px; border-radius: 10px;
-    font-weight: 600; font-size: 14px;
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F0F0; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Top-Navigation ── */
+  .topnav {
+    background: #1E1E1E;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    flex-shrink: 0;
   }
-  .status-banner.offen { background:#E8F5E9; color:#2E7D32; border:1.5px solid #A5D6A7; }
-  .status-banner.geschlossen { background:#FFEBEE; color:#C62828; border:1.5px solid #FFCDD2; }
-  .grid { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 24px; }
-  .card h2 { font-size: 15px; font-weight: 700; color: #2B2B2B; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid #C8A415; display:flex; align-items:center; gap:8px; }
+  .topnav-brand { display: flex; align-items: center; gap: 10px; color: white; font-weight: 700; font-size: 15px; text-decoration: none; }
+  .topnav-brand span { color: #C8A415; }
+  .topnav-links { display: flex; gap: 4px; }
+  .topnav-links a { color: #AAA; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: background 0.15s, color 0.15s; }
+  .topnav-links a:hover { background: #2E2E2E; color: white; }
+  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+
+  /* ── Layout ── */
+  .page-body { flex: 1; padding: 24px 20px; max-width: 960px; margin: 0 auto; width: 100%; }
+  .page-heading { margin-bottom: 20px; }
+  .page-heading h1 { font-size: 20px; font-weight: 800; color: #1E1E1E; }
+  .page-heading p { font-size: 13px; color: #999; margin-top: 3px; }
+
+  .status-banner {
+    display: none; margin-bottom: 18px;
+    padding: 12px 18px; border-radius: 10px;
+    font-weight: 700; font-size: 13px;
+  }
+  .status-banner.offen { background: #E8F5E9; color: #2E7D32; border: 1.5px solid #A5D6A7; }
+  .status-banner.geschlossen { background: #FFF0F0; color: #C62828; border: 1.5px solid #FFCDD2; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card { background: white; border-radius: 14px; box-shadow: 0 3px 16px rgba(0,0,0,0.07); padding: 22px; }
   .card.full { grid-column: 1 / -1; }
-  label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; margin-top: 14px; }
+  .card h2 { font-size: 14px; font-weight: 800; color: #1E1E1E; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #C8A415; display: flex; align-items: center; gap: 8px; }
+
+  label { display: block; font-size: 11px; font-weight: 700; color: #777; margin-bottom: 5px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.4px; }
   label:first-of-type { margin-top: 0; }
-  input[type="number"], input[type="text"], select { width: 100%; padding: 10px 12px; border: 1.5px solid #E0E0E0; border-radius: 8px; font-size: 14px; color: #2B2B2B; outline: none; transition: border-color 0.2s; background: white; }
-  input:focus, select:focus { border-color: #C8A415; }
-  .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px; transition: opacity 0.2s; }
-  .btn:hover { opacity: 0.85; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-dark { background: #2B2B2B; color: white; }
+  input[type="number"], input[type="text"], select {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #E8E8E8; border-radius: 8px;
+    font-size: 14px; color: #1E1E1E; outline: none; transition: border-color 0.2s; background: #FAFAFA;
+  }
+  input:focus, select:focus { border-color: #C8A415; background: white; }
+
+  .btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; transition: opacity 0.2s, transform 0.1s; }
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .btn-dark { background: #1E1E1E; color: white; }
   .btn-gold { background: #C8A415; color: white; }
   .btn-red { background: #C62828; color: white; }
   .btn-green { background: #2E7D32; color: white; }
-  .btn-outline { background: white; color: #2B2B2B; border: 1.5px solid #E0E0E0; }
-  .msg { display: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 12px; font-weight: 600; }
+  .btn-outline { background: white; color: #555; border: 1.5px solid #E0E0E0; }
+
+  .msg { display: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; font-weight: 600; }
   .msg.ok { background: #E8F5E9; color: #2E7D32; }
-  .msg.err { background: #FFEBEE; color: #C62828; }
-  .straf-preview { display: none; margin-top: 12px; padding: 12px 14px; background: #FFF8E1; border-radius: 8px; border: 1.5px solid #C8A415; font-size: 13px; color: #5C4000; }
-  .straf-preview strong { font-size: 18px; color: #C62828; }
-  .straf-liste { margin-top: 0; font-size: 12px; color: #888; }
+  .msg.err { background: #FFF0F0; color: #C62828; }
+
+  /* Strafzeiten */
+  .straf-preview { display: none; margin-top: 10px; padding: 11px 14px; background: #FFFBEB; border-radius: 8px; border: 1.5px solid #F0D060; font-size: 13px; color: #5C4000; }
+  .straf-preview strong { font-size: 17px; color: #C62828; }
+  .straf-liste { font-size: 12px; color: #999; }
   .straf-liste-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #F5F5F5; }
   .straf-liste-item:last-child { border: none; }
   .straf-sek { font-weight: 700; color: #C62828; font-family: monospace; }
-  .fahrer-item { border: 1.5px solid #F0F0F0; border-radius: 10px; margin-bottom: 10px; overflow: hidden; transition: border-color 0.2s; }
+
+  /* Fahrerübersicht */
+  .fahrer-search {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .fahrer-search input {
+    flex: 1; padding: 9px 12px; border: 1.5px solid #E8E8E8; border-radius: 8px;
+    font-size: 13px; outline: none; background: #FAFAFA;
+  }
+  .fahrer-search input:focus { border-color: #C8A415; background: white; }
+  .fahrer-item { border: 1.5px solid #F0F0F0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s; }
   .fahrer-item:hover { border-color: #C8A415; }
-  .fahrer-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; background: white; }
-  .fahrer-name { font-weight: 600; color: #2B2B2B; font-size: 14px; }
-  .fahrer-info { font-size: 12px; color: #888; margin-top: 2px; }
-  .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; flex-shrink: 0; margin-left: 10px; }
+  .fahrer-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; background: white; }
+  .fahrer-name { font-weight: 700; color: #1E1E1E; font-size: 14px; }
+  .fahrer-info { font-size: 12px; color: #999; margin-top: 2px; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
   .badge.ok { background: #E8F5E9; color: #2E7D32; }
-  .badge.nein { background: #F5F5F5; color: #888; }
-  .qr-panel { display: none; background: #FAFAFA; border-top: 1.5px solid #F0F0F0; padding: 16px; text-align: center; }
-  .qr-panel img { width: 160px; height: 160px; border-radius: 8px; border: 1.5px solid #E0E0E0; background: white; padding: 8px; }
-  .qr-panel p { font-size: 12px; color: #888; margin-top: 8px; }
-  .chevron { transition: transform 0.2s; color: #CCCCCC; font-size: 12px; margin-left: 8px; }
+  .badge.nein { background: #F5F5F5; color: #AAA; }
+  .qr-panel { display: none; background: #FAFAFA; border-top: 1.5px solid #F0F0F0; padding: 16px; }
+  .qr-panel-inner { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .qr-panel img { width: 140px; height: 140px; border-radius: 8px; border: 1.5px solid #E0E0E0; background: white; padding: 6px; flex-shrink: 0; }
+  .qr-zeiten { flex: 1; min-width: 180px; }
+  .qr-zeiten h4 { font-size: 12px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+  .qr-zeit-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #EEEEEE; font-size: 12px; color: #666; }
+  .qr-zeit-row:last-child { border: none; }
+  .qr-zeit-val { font-family: monospace; font-weight: 700; color: #1E1E1E; }
+  .qr-zeit-best { color: #C8A415; font-weight: 700; font-size: 13px; margin-top: 6px; }
+  .chevron { transition: transform 0.2s; color: #CCC; font-size: 11px; margin-left: 6px; }
   .chevron.open { transform: rotate(180deg); }
-  .divider { height: 1px; background: #F0F0F0; margin: 20px 0; }
-  .abschluss-box { border: 2px solid #C62828; border-radius: 12px; padding: 20px; text-align: center; }
-  .abschluss-box p { font-size: 13px; color: #555; margin-bottom: 16px; }
-  .nav-links { text-align: center; margin-top: 16px; font-size: 13px; color: #888; }
-  .nav-links a { color: #C8A415; text-decoration: none; font-weight: 600; margin: 0 8px; }
+
+  /* Abschluss-Box */
+  .abschluss-box { border: 2px solid #FFCDD2; border-radius: 12px; padding: 18px; text-align: center; background: #FFF8F8; }
+  .abschluss-box p { font-size: 13px; color: #666; margin-bottom: 14px; line-height: 1.5; }
+
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+    .card.full { grid-column: 1; }
+    .topnav-links a { padding: 6px 8px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="page-header">
-  <div>
+<nav class="topnav">
+  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
+  <div class="topnav-links">
+    <a href="index.html">Registrierung</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="kamera.html">Kamera</a>
+  </div>
+</nav>
+
+<div class="page-body">
+
+  <div class="page-heading">
     <h1>⚙️ Rennleiter-Dashboard</h1>
-    <p>RC-Car Rally 2026</p>
-  </div>
-</div>
-
-<div class="status-banner" id="statusBanner"></div>
-
-<div class="grid">
-
-  <!-- Zeiten -->
-  <div class="card">
-    <h2>⏱️ Zeit eintragen</h2>
-    <label>Fahrer-ID</label>
-    <input type="number" id="zeitFahrerId" placeholder="z.B. 1" min="1">
-    <label>Rundenzeit (Sekunden)</label>
-    <input type="number" id="rundenzeit" placeholder="z.B. 45.3" step="0.01">
-    <button class="btn btn-dark" id="btnZeit" onclick="zeitEintragen()">Zeit speichern</button>
-    <div class="msg" id="zeitMsg"></div>
+    <p>RC-Car Rally 2026 — PMK</p>
   </div>
 
-  <!-- Check-in -->
-  <div class="card">
-    <h2>✅ Fahrer Check-in</h2>
-    <label>Fahrer-ID (vom QR-Code)</label>
-    <input type="number" id="checkinId" placeholder="z.B. 1" min="1">
-    <button class="btn btn-gold" onclick="checkin()">Fahrer einchecken</button>
-    <div class="msg" id="checkinMsg"></div>
-  </div>
+  <div class="status-banner" id="statusBanner"></div>
 
-  <!-- Strafzeiten -->
-  <div class="card full">
-    <h2>⚠️ Strafzeit eintragen</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-      <div>
-        <label>Fahrer-ID</label>
-        <input type="number" id="strafFahrerId" placeholder="z.B. 1" min="1">
-        <label>Vergehen auswählen</label>
-        <select id="strafVergehen" onchange="vergehenGewaehlt()">
-          <option value="">-- Vergehen auswählen --</option>
-          <optgroup label="Tor / Zeitnahme">
-            <option value="15|Berührung der Zeitnahme / Tor (Verschieben / Streifen)">🚧 Tor berührt / verschoben / gestreift — +15 Sek.</option>
-          </optgroup>
-          <optgroup label="Frühstart">
-            <option value="10|Frühstart (bis 5 Sekunden zu früh)">🚦 Frühstart bis 5 Sek. zu früh — +10 Sek.</option>
-            <option value="20|Frühstart (mehr als 5 Sekunden zu früh)">🚦 Frühstart mehr als 5 Sek. zu früh — +20 Sek.</option>
-          </optgroup>
-          <optgroup label="Service">
-            <option value="10|Unerlaubter Service im Servicebereich (gemeldet)">🔧 Unerlaubter Service (gemeldet) — +10 Sek.</option>
-            <option value="60|Unerlaubter Service im Servicebereich (nicht gemeldet / Batteriewechsel)">🔧 Unerlaubter Service (nicht gemeldet / Akku) — +60 Sek.</option>
-          </optgroup>
-          <optgroup label="Fahrzeug">
-            <option value="30|Auto mit Fuß bewegt (gekickt)">👟 Auto mit Fuß bewegt / gekickt — +30 Sek.</option>
-            <option value="10|Zurücksetzen auf Strecke falsch (nach Streckenverlassen)">↩️ Falsches Zurücksetzen nach Streckenverlassen — +10 Sek.</option>
-          </optgroup>
-          <optgroup label="Verhalten & Strecke">
-            <option value="30|Unsportliches Verhalten / Abkürzen / Überholen blockieren">😤 Unsportliches Verhalten / Abkürzen / Blockieren — +30 Sek.</option>
-            <option value="30|Technisches Element ausgelassen oder falsch gefahren">🔁 Tech. Element ausgelassen / falsch gefahren — +30 Sek.</option>
-          </optgroup>
-          <optgroup label="Startbereich">
-            <option value="60|Zu spät zum Startbereich">⏰ Zu spät zum Startbereich — +60 Sek.</option>
-          </optgroup>
-        </select>
-        <div class="straf-preview" id="strafPreview">
-          Vergehen: <span id="previewGrund"></span><br>
-          Strafzeit: <strong id="previewSek"></strong> Sekunden
+  <div class="grid">
+
+    <!-- Zeit eintragen -->
+    <div class="card">
+      <h2>⏱️ Zeit eintragen</h2>
+      <label>Fahrer-ID</label>
+      <input type="number" id="zeitFahrerId" placeholder="z.B. 1" min="1">
+      <label>Rundenzeit (Sekunden)</label>
+      <input type="number" id="rundenzeit" placeholder="z.B. 45.3" step="0.01">
+      <button class="btn btn-dark" id="btnZeit" onclick="zeitEintragen()">Zeit speichern</button>
+      <div class="msg" id="zeitMsg"></div>
+    </div>
+
+    <!-- Check-in -->
+    <div class="card">
+      <h2>✅ Fahrer Check-in</h2>
+      <label>Fahrer-ID (vom QR-Code)</label>
+      <input type="number" id="checkinId" placeholder="z.B. 1" min="1">
+      <button class="btn btn-gold" onclick="checkin()">Fahrer einchecken</button>
+      <div class="msg" id="checkinMsg"></div>
+    </div>
+
+    <!-- Strafzeiten -->
+    <div class="card full">
+      <h2>⚠️ Strafzeit eintragen</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <label>Fahrer-ID</label>
+          <input type="number" id="strafFahrerId" placeholder="z.B. 1" min="1">
+          <label>Vergehen auswählen</label>
+          <select id="strafVergehen" onchange="vergehenGewaehlt()">
+            <option value="">-- Vergehen auswählen --</option>
+            <optgroup label="Tor / Zeitnahme">
+              <option value="15|Berührung der Zeitnahme / Tor (Verschieben / Streifen)">🚧 Tor berührt / verschoben / gestreift — +15 Sek.</option>
+            </optgroup>
+            <optgroup label="Frühstart">
+              <option value="10|Frühstart (bis 5 Sekunden zu früh)">🚦 Frühstart bis 5 Sek. zu früh — +10 Sek.</option>
+              <option value="20|Frühstart (mehr als 5 Sekunden zu früh)">🚦 Frühstart mehr als 5 Sek. zu früh — +20 Sek.</option>
+            </optgroup>
+            <optgroup label="Service">
+              <option value="10|Unerlaubter Service im Servicebereich (gemeldet)">🔧 Unerlaubter Service (gemeldet) — +10 Sek.</option>
+              <option value="60|Unerlaubter Service im Servicebereich (nicht gemeldet / Batteriewechsel)">🔧 Unerlaubter Service (nicht gemeldet / Akku) — +60 Sek.</option>
+            </optgroup>
+            <optgroup label="Fahrzeug">
+              <option value="30|Auto mit Fuß bewegt (gekickt)">👟 Auto mit Fuß bewegt / gekickt — +30 Sek.</option>
+              <option value="10|Zurücksetzen auf Strecke falsch (nach Streckenverlassen)">↩️ Falsches Zurücksetzen nach Streckenverlassen — +10 Sek.</option>
+            </optgroup>
+            <optgroup label="Verhalten & Strecke">
+              <option value="30|Unsportliches Verhalten / Abkürzen / Überholen blockieren">😤 Unsportliches Verhalten / Abkürzen / Blockieren — +30 Sek.</option>
+              <option value="30|Technisches Element ausgelassen oder falsch gefahren">🔁 Tech. Element ausgelassen / falsch gefahren — +30 Sek.</option>
+            </optgroup>
+            <optgroup label="Startbereich">
+              <option value="60|Zu spät zum Startbereich">⏰ Zu spät zum Startbereich — +60 Sek.</option>
+            </optgroup>
+          </select>
+          <div class="straf-preview" id="strafPreview">
+            Vergehen: <span id="previewGrund"></span><br>
+            Strafzeit: <strong id="previewSek"></strong> Sekunden
+          </div>
+          <button class="btn btn-red" id="btnStraf" onclick="strafzeit()">Strafzeit eintragen</button>
+          <div class="msg" id="strafMsg"></div>
         </div>
-        <button class="btn btn-red" id="btnStraf" onclick="strafzeit()">Strafzeit eintragen</button>
-        <div class="msg" id="strafMsg"></div>
-      </div>
-      <div>
-        <p style="font-size:12px;font-weight:600;color:#555;margin-bottom:10px">STRAFZEITEN-ÜBERSICHT</p>
-        <div class="straf-liste">
-          <div class="straf-liste-item"><span>Tor berührt / verschoben</span><span class="straf-sek">+15s</span></div>
-          <div class="straf-liste-item"><span>Frühstart bis 5 Sek.</span><span class="straf-sek">+10s</span></div>
-          <div class="straf-liste-item"><span>Frühstart mehr als 5 Sek.</span><span class="straf-sek">+20s</span></div>
-          <div class="straf-liste-item"><span>Unerlaubter Service (gemeldet)</span><span class="straf-sek">+10s</span></div>
-          <div class="straf-liste-item"><span>Unerlaubter Service (nicht gemeldet)</span><span class="straf-sek">+60s</span></div>
-          <div class="straf-liste-item"><span>Auto mit Fuß bewegt</span><span class="straf-sek">+30s</span></div>
-          <div class="straf-liste-item"><span>Falsches Zurücksetzen</span><span class="straf-sek">+10s</span></div>
-          <div class="straf-liste-item"><span>Unsportliches Verhalten / Abkürzen</span><span class="straf-sek">+30s</span></div>
-          <div class="straf-liste-item"><span>Tech. Element ausgelassen</span><span class="straf-sek">+30s</span></div>
-          <div class="straf-liste-item"><span>Zu spät zum Startbereich</span><span class="straf-sek">+60s</span></div>
+        <div>
+          <p style="font-size:11px;font-weight:700;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px">Strafzeiten-Übersicht</p>
+          <div class="straf-liste">
+            <div class="straf-liste-item"><span>Tor berührt / verschoben</span><span class="straf-sek">+15s</span></div>
+            <div class="straf-liste-item"><span>Frühstart bis 5 Sek.</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-liste-item"><span>Frühstart mehr als 5 Sek.</span><span class="straf-sek">+20s</span></div>
+            <div class="straf-liste-item"><span>Unerlaubter Service (gemeldet)</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-liste-item"><span>Unerlaubter Service (nicht gemeldet)</span><span class="straf-sek">+60s</span></div>
+            <div class="straf-liste-item"><span>Auto mit Fuß bewegt</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-liste-item"><span>Falsches Zurücksetzen</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-liste-item"><span>Unsportliches Verhalten / Abkürzen</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-liste-item"><span>Tech. Element ausgelassen</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-liste-item"><span>Zu spät zum Startbereich</span><span class="straf-sek">+60s</span></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Rennen abschließen -->
-  <div class="card full">
-    <h2>🏁 Rennen & Ergebnisse</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-      <div class="abschluss-box">
-        <p>Wenn alle Läufe gefahren sind das Rennen abschließen. Danach können keine neuen Zeiten oder Strafzeiten mehr eingetragen werden.</p>
-        <button class="btn btn-red" id="btnAbschluss" onclick="rennAbschliessen()">
-          🏁 Rennen abschließen
-        </button>
-        <button class="btn btn-outline" id="btnReset" onclick="rennReset()" style="display:none;margin-top:10px">
-          ↺ Rennen wieder öffnen
-        </button>
-        <div class="msg" id="abschlussMsg"></div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:12px;justify-content:center">
-        <a href="http://127.0.0.1:8000/ergebnisse/pdf" target="_blank"
-          style="display:block;text-align:center;padding:12px;background:#2B2B2B;color:white;border-radius:8px;font-weight:600;font-size:14px;text-decoration:none">
-          🖨️ Ergebnisliste öffnen & drucken
-        </a>
-        <a href="leaderboard.html" target="_blank"
-          style="display:block;text-align:center;padding:12px;background:#C8A415;color:white;border-radius:8px;font-weight:600;font-size:14px;text-decoration:none">
-          📊 Live-Leaderboard öffnen
-        </a>
+    <!-- Rennen abschließen -->
+    <div class="card full">
+      <h2>🏁 Rennen & Ergebnisse</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="abschluss-box">
+          <p>Wenn alle Läufe gefahren sind, das Rennen abschließen. Danach können keine neuen Zeiten oder Strafzeiten mehr eingetragen werden.</p>
+          <button class="btn btn-red" id="btnAbschluss" onclick="rennAbschliessen()">
+            🏁 Rennen abschließen
+          </button>
+          <button class="btn btn-outline" id="btnReset" onclick="rennReset()" style="display:none;margin-top:8px">
+            ↺ Rennen wieder öffnen
+          </button>
+          <div class="msg" id="abschlussMsg"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;justify-content:center">
+          <a href="#" onclick="window.open(API+'/ergebnisse/pdf','_blank');return false;"
+            style="display:block;text-align:center;padding:12px;background:#1E1E1E;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
+            🖨️ Ergebnisliste öffnen & drucken
+          </a>
+          <a href="leaderboard.html" target="_blank"
+            style="display:block;text-align:center;padding:12px;background:#C8A415;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
+            📊 Live-Leaderboard öffnen
+          </a>
+          <a href="/simulator" target="_blank"
+            style="display:block;text-align:center;padding:12px;background:#0f3460;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
+            📷 Mehrtor-Simulator öffnen
+          </a>
+        </div>
       </div>
     </div>
+
+    <!-- Fahrerübersicht -->
+    <div class="card full">
+      <h2>👥 Alle Fahrer & QR-Codes
+        <button onclick="faehrerLaden()"
+          style="margin-left:auto;background:none;border:1.5px solid #E0E0E0;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#666;font-weight:600">
+          ↻ Aktualisieren
+        </button>
+      </h2>
+      <div class="fahrer-search">
+        <input type="text" id="fahrerSuche" placeholder="🔍 Fahrer suchen (Name, Fahrzeug, Startnr.)..." oninput="fahrerFiltern()">
+      </div>
+      <div id="fahrerListe"><p style="color:#AAA;font-size:14px">Wird geladen...</p></div>
+    </div>
+
   </div>
-
-  <!-- Fahrerübersicht -->
-  <div class="card full">
-    <h2>👥 Alle Fahrer & QR-Codes
-      <button onclick="faehrerLaden()"
-        style="margin-left:auto;background:none;border:1.5px solid #E0E0E0;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#555">
-        ↻ Aktualisieren
-      </button>
-    </h2>
-    <div id="fahrerListe"><p style="color:#888;font-size:14px">Wird geladen...</p></div>
-  </div>
-
-</div>
-
-<div class="nav-links">
-  <a href="index.html">📝 Registrierung</a>
-  <a href="leaderboard.html">📊 Leaderboard</a>
 </div>
 
 <script>
+const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
 let rennOffen = true;
+let alleFahrer = [];
 
 function vergehenGewaehlt() {
   const sel = document.getElementById('strafVergehen').value;
@@ -221,7 +288,7 @@ function showMsg(id, text, ok) {
 
 async function statusLaden() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/status');
+    const res = await fetch('' + API + '/status');
     const data = await res.json();
     rennOffen = !data.abgeschlossen;
     const banner = document.getElementById('statusBanner');
@@ -256,38 +323,83 @@ function toggleQR(fahrerId) {
   const isOpen = panel.style.display === 'block';
   panel.style.display = isOpen ? 'none' : 'block';
   chevron.classList.toggle('open', !isOpen);
-  if (!isOpen && !img.src.includes('8000')) {
-    img.src = `http://127.0.0.1:8000/fahrer/${fahrerId}/qrcode`;
+  if (!isOpen) {
+    if (!img.src || img.src === window.location.href) {
+      img.src = `${API}/fahrer/${fahrerId}/qrcode`;
+    }
+    zeitenFuerFahrer(fahrerId);
   }
+}
+
+async function zeitenFuerFahrer(fahrerId) {
+  try {
+    const res = await fetch(`${API}/zeiten/${fahrerId}`);
+    const zeiten = await res.json();
+    const box = document.getElementById('zeiten-' + fahrerId);
+    if (!box) return;
+    if (zeiten.length === 0) {
+      box.innerHTML = '<p style="color:#AAA;font-size:12px">Noch keine Zeiten.</p>';
+      return;
+    }
+    const beste = Math.min(...zeiten.map(z => z.gesamtzeit));
+    box.innerHTML =
+      zeiten.map((z, i) => `
+        <div class="qr-zeit-row">
+          <span>Lauf ${i+1}</span>
+          <span class="qr-zeit-val">${z.gesamtzeit.toFixed(2)}s</span>
+        </div>`).join('') +
+      `<div class="qr-zeit-best">⭐ Beste: ${beste.toFixed(2)}s</div>`;
+  } catch(e) {}
+}
+
+function fahrerFiltern() {
+  const q = document.getElementById('fahrerSuche').value.toLowerCase();
+  const gefiltert = q
+    ? alleFahrer.filter(f =>
+        f.name.toLowerCase().includes(q) ||
+        f.fahrzeug.toLowerCase().includes(q) ||
+        String(f.startnummer).includes(q) ||
+        f.email.toLowerCase().includes(q)
+      )
+    : alleFahrer;
+  renderFahrer(gefiltert);
+}
+
+function renderFahrer(daten) {
+  const container = document.getElementById('fahrerListe');
+  if (daten.length === 0) {
+    container.innerHTML = '<p style="color:#AAA;font-size:14px">Keine Fahrer gefunden.</p>';
+    return;
+  }
+  container.innerHTML = daten.map(f => `
+    <div class="fahrer-item">
+      <div class="fahrer-row" onclick="toggleQR(${f.id})">
+        <div>
+          <div class="fahrer-name">#${f.startnummer} — ${f.name}</div>
+          <div class="fahrer-info">${f.fahrzeug} · ${f.email} · ID: ${f.id}</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <span class="badge ${f.eingecheckt ? 'ok' : 'nein'}">${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}</span>
+          <span class="chevron" id="chev-${f.id}">▼</span>
+        </div>
+      </div>
+      <div class="qr-panel" id="qr-${f.id}">
+        <div class="qr-panel-inner">
+          <img id="qrimg-${f.id}" src="" alt="QR-Code">
+          <div class="qr-zeiten">
+            <h4>Zeiten</h4>
+            <div id="zeiten-${f.id}"><p style="color:#AAA;font-size:12px">Wird geladen...</p></div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 async function faehrerLaden() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/fahrer');
-    const daten = await res.json();
-    const container = document.getElementById('fahrerListe');
-    if (daten.length === 0) {
-      container.innerHTML = '<p style="color:#888;font-size:14px">Noch keine Fahrer registriert.</p>';
-      return;
-    }
-    container.innerHTML = daten.map(f => `
-      <div class="fahrer-item">
-        <div class="fahrer-row" onclick="toggleQR(${f.id})">
-          <div>
-            <div class="fahrer-name">#${f.startnummer} — ${f.name}</div>
-            <div class="fahrer-info">${f.fahrzeug} · ${f.email} · ID: ${f.id}</div>
-          </div>
-          <div style="display:flex;align-items:center">
-            <span class="badge ${f.eingecheckt ? 'ok' : 'nein'}">${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}</span>
-            <span style="font-size:11px;color:#888;margin-left:8px">QR</span>
-            <span class="chevron" id="chev-${f.id}">▼</span>
-          </div>
-        </div>
-        <div class="qr-panel" id="qr-${f.id}">
-          <img id="qrimg-${f.id}" src="" alt="QR-Code">
-          <p>${f.name} · Startnummer #${f.startnummer}</p>
-        </div>
-      </div>`).join('');
+    const res = await fetch('' + API + '/fahrer');
+    alleFahrer = await res.json();
+    fahrerFiltern();
   } catch(e) {
     document.getElementById('fahrerListe').innerHTML =
       '<p style="color:#C62828;font-size:14px">Server nicht erreichbar.</p>';
@@ -299,7 +411,7 @@ async function zeitEintragen() {
   const rundenzeit = parseFloat(document.getElementById('rundenzeit').value);
   if (!fahrer_id || !rundenzeit) return showMsg('zeitMsg', 'Alle Felder ausfüllen!', false);
   try {
-    const res = await fetch('http://127.0.0.1:8000/zeiten', {
+    const res = await fetch('' + API + '/zeiten', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({fahrer_id, rundenzeit, strafzeit: 0})
     });
@@ -315,7 +427,7 @@ async function checkin() {
   const id = parseInt(document.getElementById('checkinId').value);
   if (!id) return showMsg('checkinMsg', 'Fahrer-ID eingeben!', false);
   try {
-    const res = await fetch(`http://127.0.0.1:8000/checkin/${id}`, {method: 'POST'});
+    const res = await fetch(`${API}/checkin/${id}`, {method: 'POST'});
     const data = await res.json();
     if (!res.ok) return showMsg('checkinMsg', data.detail, false);
     showMsg('checkinMsg', `✓ ${data.message}`, true);
@@ -332,7 +444,7 @@ async function strafzeit() {
   const [sekStr, grund] = sel.split('|');
   const strafzeit = parseFloat(sekStr);
   try {
-    const res = await fetch('http://127.0.0.1:8000/strafzeiten', {
+    const res = await fetch('' + API + '/strafzeiten', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({fahrer_id, strafzeit, grund})
     });
@@ -348,7 +460,7 @@ async function strafzeit() {
 async function rennAbschliessen() {
   if (!confirm('Rennen wirklich abschließen? Danach können keine Zeiten mehr eingetragen werden!')) return;
   try {
-    const res = await fetch('http://127.0.0.1:8000/rennen/abschliessen', {method: 'POST'});
+    const res = await fetch('' + API + '/rennen/abschliessen', {method: 'POST'});
     const data = await res.json();
     if (!res.ok) return showMsg('abschlussMsg', data.detail, false);
     showMsg('abschlussMsg', '✓ ' + data.message, true);
@@ -359,7 +471,7 @@ async function rennAbschliessen() {
 async function rennReset() {
   if (!confirm('Rennen wieder öffnen?')) return;
   try {
-    const res = await fetch('http://127.0.0.1:8000/rennen/reset', {method: 'POST'});
+    const res = await fetch('' + API + '/rennen/reset', {method: 'POST'});
     const data = await res.json();
     showMsg('abschlussMsg', '✓ ' + data.message, true);
     statusLaden();

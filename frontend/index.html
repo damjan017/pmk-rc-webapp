@@ -8,199 +8,243 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f4f4f4;
+    background: #F0F0F0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+
+  /* ── Top-Navigation ── */
+  .topnav {
+    background: #1E1E1E;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    flex-shrink: 0;
+  }
+  .topnav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+  }
+  .topnav-brand span { color: #C8A415; }
+  .topnav-links { display: flex; gap: 4px; }
+  .topnav-links a {
+    color: #AAA;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .topnav-links a:hover { background: #2E2E2E; color: white; }
+  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+
+  /* ── Page body ── */
+  .page-body {
+    flex: 1;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 32px 20px;
   }
   .card {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-radius: 16px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.10);
     padding: 40px;
     width: 100%;
-    max-width: 480px;
+    max-width: 460px;
   }
   .logo {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
   }
   .logo h1 {
-    font-size: 24px;
-    color: #2B2B2B;
-    font-weight: 700;
+    font-size: 22px;
+    color: #1E1E1E;
+    font-weight: 800;
+    letter-spacing: -0.5px;
   }
   .logo p {
-    color: #888;
-    font-size: 14px;
+    color: #999;
+    font-size: 13px;
     margin-top: 4px;
   }
   .gold-line {
     height: 3px;
-    background: #C8A415;
+    background: linear-gradient(90deg, #C8A415, #E8C84A);
     border-radius: 2px;
-    margin: 0 auto 30px;
-    width: 60px;
+    margin: 14px auto 0;
+    width: 48px;
   }
   label {
     display: block;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     color: #555;
     margin-bottom: 6px;
     margin-top: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
   }
   input[type="text"], input[type="email"] {
     width: 100%;
-    padding: 12px 14px;
+    padding: 11px 14px;
     border: 1.5px solid #E0E0E0;
     border-radius: 8px;
     font-size: 15px;
-    color: #2B2B2B;
-    transition: border-color 0.2s;
+    color: #1E1E1E;
+    transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
+    background: #FAFAFA;
   }
-  input:focus { border-color: #C8A415; }
+  input:focus {
+    border-color: #C8A415;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(200,164,21,0.12);
+  }
   .checkbox-row {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin-top: 22px;
+    margin-top: 20px;
     padding: 14px;
-    background: #FFF8E1;
+    background: #FFFBEB;
     border-radius: 8px;
-    border: 1px solid #C8A415;
+    border: 1.5px solid #F0D060;
   }
   .checkbox-row input[type="checkbox"] {
-    width: 18px; height: 18px;
+    width: 17px; height: 17px;
     margin-top: 2px;
     accent-color: #C8A415;
     flex-shrink: 0;
+    cursor: pointer;
   }
-  .checkbox-row span {
-    font-size: 13px;
-    color: #555;
-    line-height: 1.5;
-  }
+  .checkbox-row span { font-size: 13px; color: #666; line-height: 1.5; }
   .btn {
     width: 100%;
-    padding: 14px;
-    background: #2B2B2B;
+    padding: 13px;
+    background: #1E1E1E;
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
-    margin-top: 24px;
-    transition: background 0.2s;
+    margin-top: 22px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.2px;
   }
   .btn:hover { background: #C8A415; }
-  .btn:disabled { background: #ccc; cursor: not-allowed; }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { background: #CCC; cursor: not-allowed; transform: none; }
   .success {
     display: none;
     text-align: center;
-    padding: 24px;
+    padding: 16px 0;
   }
-  .success .badge {
-    font-size: 48px;
-    margin-bottom: 12px;
-  }
-  .success h2 { color: #2E7D32; margin-bottom: 8px; }
-  .success p { color: #555; margin-bottom: 6px; }
+  .success .badge { font-size: 44px; margin-bottom: 10px; }
+  .success h2 { color: #2E7D32; margin-bottom: 8px; font-size: 20px; }
+  .success p { color: #666; margin-bottom: 4px; font-size: 14px; }
   .startnummer {
-    font-size: 52px;
-    font-weight: 800;
+    font-size: 56px;
+    font-weight: 900;
     color: #C8A415;
-    margin: 10px 0;
+    margin: 8px 0;
+    line-height: 1;
   }
   .qr-btn {
     display: inline-block;
     margin-top: 16px;
     padding: 10px 24px;
-    background: #f4f4f4;
+    background: #F5F5F5;
     border: 1.5px solid #E0E0E0;
     border-radius: 8px;
-    color: #2B2B2B;
+    color: #1E1E1E;
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
+    transition: border-color 0.2s;
   }
+  .qr-btn:hover { border-color: #C8A415; }
   .error-msg {
     display: none;
-    background: #FFEBEE;
+    background: #FFF0F0;
     color: #C62828;
     border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 14px;
-    margin-top: 16px;
-    border: 1px solid #FFCDD2;
-  }
-  .nav-links {
-    text-align: center;
-    margin-top: 20px;
+    padding: 11px 14px;
     font-size: 13px;
-    color: #888;
-  }
-  .nav-links a {
-    color: #C8A415;
-    text-decoration: none;
-    font-weight: 600;
-    margin: 0 8px;
+    margin-top: 14px;
+    border: 1.5px solid #FFCDD2;
   }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <h1>🏁 RC-Car Rally</h1>
-    <p>Online-Registrierung</p>
-    <div class="gold-line"></div>
+
+<nav class="topnav">
+  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
+  <div class="topnav-links">
+    <a href="index.html" class="active">Registrierung</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="kamera.html">Kamera</a>
   </div>
+</nav>
 
-  <div id="formSection">
-    <label for="name">Vollständiger Name</label>
-    <input type="text" id="name" placeholder="z.B. Max Mustermann">
-
-    <label for="email">E-Mail-Adresse</label>
-    <input type="email" id="email" placeholder="z.B. max@email.de">
-
-    <label for="fahrzeug">Fahrzeugbezeichnung</label>
-    <input type="text" id="fahrzeug" placeholder="z.B. Traxxas Slash 4x4">
-
-    <div class="checkbox-row">
-      <input type="checkbox" id="einwilligung">
-      <span>Ich stimme der Verarbeitung meiner Daten für die Durchführung der Rally zu. Die Daten werden nach dem Event gelöscht (DSGVO).</span>
+<div class="page-body">
+  <div class="card">
+    <div class="logo">
+      <h1>Online-Registrierung</h1>
+      <p>RC-Car Rally 2026 — PMK</p>
+      <div class="gold-line"></div>
     </div>
 
-    <div class="error-msg" id="errorMsg"></div>
+    <div id="formSection">
+      <label for="name">Vollständiger Name</label>
+      <input type="text" id="name" placeholder="z.B. Max Mustermann">
 
-    <button class="btn" onclick="registrieren()" id="submitBtn">
-      Jetzt anmelden →
-    </button>
-  </div>
+      <label for="email">E-Mail-Adresse</label>
+      <input type="email" id="email" placeholder="z.B. max@email.de">
 
-  <div class="success" id="successSection">
-    <div class="badge">✅</div>
-    <h2>Erfolgreich angemeldet!</h2>
-    <p>Deine Startnummer:</p>
-    <div class="startnummer" id="startnummerAnzeige"></div>
-    <p style="color:#888;font-size:13px">Zeige diesen QR-Code beim Check-in vor</p>
-    <br>
-    <a class="qr-btn" id="qrLink" target="_blank">📱 QR-Code anzeigen</a>
-  </div>
+      <label for="fahrzeug">Fahrzeugbezeichnung</label>
+      <input type="text" id="fahrzeug" placeholder="z.B. Traxxas Slash 4x4">
 
-  <div class="nav-links">
-    <a href="leaderboard.html">📊 Leaderboard</a>
-    <a href="dashboard.html">⚙️ Dashboard</a>
+      <div class="checkbox-row">
+        <input type="checkbox" id="einwilligung">
+        <span>Ich stimme der Verarbeitung meiner Daten für die Durchführung der Rally zu. Die Daten werden nach dem Event gelöscht (DSGVO).</span>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <button class="btn" onclick="registrieren()" id="submitBtn">
+        Jetzt anmelden →
+      </button>
+    </div>
+
+    <div class="success" id="successSection">
+      <div class="badge">✅</div>
+      <h2>Erfolgreich angemeldet!</h2>
+      <p>Deine Startnummer:</p>
+      <div class="startnummer" id="startnummerAnzeige"></div>
+      <p style="color:#999;font-size:13px">Zeige diesen QR-Code beim Check-in vor</p>
+      <br>
+      <a class="qr-btn" id="qrLink" target="_blank">📱 QR-Code anzeigen</a>
+    </div>
   </div>
 </div>
 
 <script>
+const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
+
 async function registrieren() {
   const name = document.getElementById('name').value.trim();
   const email = document.getElementById('email').value.trim();
@@ -226,7 +270,7 @@ async function registrieren() {
   btn.textContent = 'Wird registriert...';
 
   try {
-    const res = await fetch('http://127.0.0.1:8000/fahrer', {
+    const res = await fetch(API + '/fahrer', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name, email, fahrzeug, einwilligung})

@@ -8,22 +8,63 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f4f4f4;
+    background: #F0F0F0;
     min-height: 100vh;
-    padding: 20px;
+    display: flex;
+    flex-direction: column;
   }
-  .header {
-    max-width: 700px;
-    margin: 0 auto 24px;
+
+  /* ── Top-Navigation ── */
+  .topnav {
+    background: #1E1E1E;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 52px;
+    flex-shrink: 0;
   }
-  .header h1 { font-size: 22px; color: #2B2B2B; }
-  .header p { font-size: 13px; color: #888; margin-top: 2px; }
+  .topnav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+  }
+  .topnav-brand span { color: #C8A415; }
+  .topnav-links { display: flex; gap: 4px; }
+  .topnav-links a {
+    color: #AAA;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .topnav-links a:hover { background: #2E2E2E; color: white; }
+  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+
+  /* ── Content ── */
+  .page-body { flex: 1; padding: 28px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
+
+  .lb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .lb-header h1 { font-size: 22px; color: #1E1E1E; font-weight: 800; }
+  .lb-header p { font-size: 13px; color: #999; margin-top: 2px; }
+  .lb-controls { display: flex; align-items: center; gap: 10px; }
   .live-dot {
     display: flex; align-items: center; gap: 6px;
-    font-size: 13px; color: #2E7D32; font-weight: 600;
+    font-size: 13px; color: #2E7D32; font-weight: 700;
+    background: #E8F5E9; padding: 5px 12px; border-radius: 20px;
   }
   .live-dot::before {
     content: '';
@@ -32,133 +73,136 @@
     border-radius: 50%;
     animation: pulse 1.5s infinite;
   }
-  @keyframes pulse {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-  .card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    max-width: 700px;
-    margin: 0 auto;
-    overflow: hidden;
-  }
-  .table-header {
-    display: grid;
-    grid-template-columns: 60px 1fr 140px 120px;
-    padding: 12px 20px;
-    background: #2B2B2B;
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 60px 1fr 140px 120px;
-    padding: 14px 20px;
-    border-bottom: 1px solid #F0F0F0;
-    align-items: center;
-    transition: background 0.15s;
-  }
-  .row:hover { background: #FAFAFA; }
-  .row:last-child { border-bottom: none; }
-  .row.first { background: #FFF8E1; }
-  .row.second { background: #F5F5F5; }
-  .row.third { background: #FFF3E0; }
-  .place {
-    font-size: 20px;
-    font-weight: 800;
-    color: #CCCCCC;
-  }
-  .place.p1 { color: #C8A415; }
-  .place.p2 { color: #888; }
-  .place.p3 { color: #CD7F32; }
-  .name { font-weight: 600; color: #2B2B2B; font-size: 15px; }
-  .fahrzeug { font-size: 12px; color: #888; margin-top: 2px; }
-  .checkin {
-    font-size: 12px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-    display: inline-block;
-  }
-  .checkin.ja { background: #E8F5E9; color: #2E7D32; }
-  .checkin.nein { background: #F5F5F5; color: #888; }
-  .zeit {
-    font-family: 'Courier New', monospace;
-    font-size: 15px;
-    font-weight: 700;
-    color: #2B2B2B;
-    text-align: right;
-  }
-  .zeit.keine { color: #CCC; font-size: 13px; font-family: inherit; font-weight: 400; }
-  .empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: #888;
-  }
-  .empty .icon { font-size: 40px; margin-bottom: 12px; }
-  .nav-links {
-    text-align: center;
-    margin-top: 16px;
-    font-size: 13px;
-    color: #888;
-  }
-  .nav-links a {
-    color: #C8A415;
-    text-decoration: none;
-    font-weight: 600;
-    margin: 0 8px;
-  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
   .refresh-btn {
-    background: none;
+    background: white;
     border: 1.5px solid #E0E0E0;
     border-radius: 8px;
     padding: 6px 14px;
     font-size: 13px;
     cursor: pointer;
     color: #555;
+    font-weight: 600;
+    transition: border-color 0.2s, color 0.2s;
   }
   .refresh-btn:hover { border-color: #C8A415; color: #C8A415; }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .table-header {
+    display: grid;
+    grid-template-columns: 64px 1fr 80px 100px 130px;
+    padding: 12px 20px;
+    background: #1E1E1E;
+    color: #AAA;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 64px 1fr 80px 100px 130px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #F2F2F2;
+    align-items: center;
+    transition: background 0.12s;
+  }
+  .row:hover { background: #FAFAFA; }
+  .row:last-child { border-bottom: none; }
+  .row.first { background: #FFFBEB; }
+  .row.second { background: #F8F8F8; }
+  .row.third { background: #FFF8F0; }
+  .place { font-size: 22px; font-weight: 900; color: #CCC; }
+  .place.p1 { color: #C8A415; }
+  .place.p2 { color: #888; }
+  .place.p3 { color: #CD7F32; }
+  .name { font-weight: 700; color: #1E1E1E; font-size: 15px; }
+  .fahrzeug { font-size: 12px; color: #999; margin-top: 2px; }
+  .laeufe {
+    font-size: 13px;
+    color: #888;
+    font-weight: 600;
+    text-align: center;
+  }
+  .checkin {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .checkin.ja { background: #E8F5E9; color: #2E7D32; }
+  .checkin.nein { background: #F5F5F5; color: #AAA; }
+  .zeit {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1E1E1E;
+    text-align: right;
+  }
+  .zeit.keine { color: #CCC; font-size: 13px; font-family: inherit; font-weight: 400; }
+  .straf { font-size: 11px; color: #C62828; font-weight: 600; margin-top: 2px; text-align: right; }
+  .empty { text-align: center; padding: 60px 20px; color: #AAA; }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+
+  @media (max-width: 600px) {
+    .table-header { grid-template-columns: 48px 1fr 110px; }
+    .table-header .col-laeufe, .table-header .col-status { display: none; }
+    .row { grid-template-columns: 48px 1fr 110px; }
+    .row .col-laeufe, .row .col-status { display: none; }
+    .topnav-links a { padding: 6px 8px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>🏁 Live-Leaderboard</h1>
-    <p>RC-Car Rally 2026</p>
+<nav class="topnav">
+  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
+  <div class="topnav-links">
+    <a href="index.html">Registrierung</a>
+    <a href="leaderboard.html" class="active">Leaderboard</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="kamera.html">Kamera</a>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="live-dot">Live</div>
-    <button class="refresh-btn" onclick="laden()">↻ Aktualisieren</button>
-  </div>
-</div>
+</nav>
 
-<div class="card">
-  <div class="table-header">
-    <span>Platz</span>
-    <span>Fahrer</span>
-    <span>Status</span>
-    <span style="text-align:right">Beste Zeit</span>
+<div class="page-body">
+  <div class="lb-header">
+    <div>
+      <h1>Live-Leaderboard</h1>
+      <p>RC-Car Rally 2026 — PMK</p>
+    </div>
+    <div class="lb-controls">
+      <div class="live-dot">Live</div>
+      <button class="refresh-btn" onclick="laden()">↻ Aktualisieren</button>
+    </div>
   </div>
-  <div id="leaderboardBody">
-    <div class="empty">
-      <div class="icon">⏳</div>
-      <p>Wird geladen...</p>
+
+  <div class="card">
+    <div class="table-header">
+      <span>Platz</span>
+      <span>Fahrer</span>
+      <span class="col-laeufe" style="text-align:center">Läufe</span>
+      <span class="col-status">Status</span>
+      <span style="text-align:right">Beste Zeit</span>
+    </div>
+    <div id="leaderboardBody">
+      <div class="empty">
+        <div class="icon">⏳</div>
+        <p>Wird geladen...</p>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="nav-links">
-  <a href="index.html">📝 Registrierung</a>
-  <a href="dashboard.html">⚙️ Dashboard</a>
-</div>
-
 <script>
+const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
+
 function formatZeit(sek) {
   if (sek === null || sek === undefined) return null;
   const min = Math.floor(sek / 60);
@@ -168,7 +212,7 @@ function formatZeit(sek) {
 
 async function laden() {
   try {
-    const res = await fetch('http://127.0.0.1:8000/leaderboard');
+    const res = await fetch(API + '/leaderboard');
     const daten = await res.json();
     const body = document.getElementById('leaderboardBody');
 
@@ -185,6 +229,7 @@ async function laden() {
       const platzKlasse = i < 3 ? klassen[i] : '';
       const platzTextKlasse = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : '';
       const zeitStr = formatZeit(f.beste_gesamtzeit);
+      const strafStr = f.gesamt_strafzeit > 0 ? `+${f.gesamt_strafzeit}s Strafe` : '';
       return `
         <div class="row ${platzKlasse}">
           <span class="place ${platzTextKlasse}">${platzIcon}</span>
@@ -192,13 +237,15 @@ async function laden() {
             <div class="name">${f.name}</div>
             <div class="fahrzeug">${f.fahrzeug} · #${f.startnummer}</div>
           </div>
-          <div>
+          <div class="laeufe col-laeufe">${f.anzahl_laeufe}</div>
+          <div class="col-status">
             <span class="checkin ${f.eingecheckt ? 'ja' : 'nein'}">
               ${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}
             </span>
           </div>
-          <div class="zeit ${zeitStr ? '' : 'keine'}">
-            ${zeitStr || 'Keine Zeit'}
+          <div>
+            <div class="zeit ${zeitStr ? '' : 'keine'}">${zeitStr || '—'}</div>
+            ${strafStr ? `<div class="straf">${strafStr}</div>` : ''}
           </div>
         </div>`;
     }).join('');

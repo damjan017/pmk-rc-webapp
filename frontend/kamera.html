@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC-Car Rally — KI-Kamera Simulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; min-height: 100vh; padding: 20px; color: white; }
+  .header { max-width: 600px; margin: 0 auto 20px; text-align: center; }
+  .header h1 { font-size: 22px; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .cam-badge { display: inline-block; background: #C62828; color: white; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; margin-bottom: 10px; animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .card { background: #16213e; border-radius: 12px; padding: 24px; max-width: 600px; margin: 0 auto 16px; border: 1px solid #0f3460; }
+  .card h2 { font-size: 15px; font-weight: 700; color: #C8A415; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #888; margin-bottom: 6px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+  select { width: 100%; padding: 10px 12px; background: #0f3460; border: 1.5px solid #1a4a8a; border-radius: 8px; font-size: 14px; color: white; outline: none; }
+  select:focus { border-color: #C8A415; }
+
+  .timer { text-align: center; padding: 24px; background: #0f1b2d; border-radius: 10px; margin: 16px 0; border: 1px solid #1a4a8a; }
+  .timer-label { font-size: 13px; color: #888; margin-bottom: 8px; }
+  .timer-zahl { font-size: 52px; font-weight: 800; color: #C8A415; font-family: 'Courier New', monospace; }
+  .timer-zahl.laueft { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+  .btn-signal { width: 100%; padding: 20px; border: none; border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .btn-signal:active { transform: scale(0.97); }
+  .btn-signal.start { background: #2E7D32; color: white; }
+  .btn-signal.ziel { background: #C62828; color: white; }
+  .btn-signal:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .status { padding: 14px 16px; border-radius: 8px; margin-top: 14px; font-size: 14px; font-weight: 600; text-align: center; display: none; }
+  .status.ok { background: #1B5E20; color: #69F0AE; }
+  .status.err { background: #4a0000; color: #FF5252; }
+  .status.info { background: #0d2b5e; color: #82B1FF; }
+
+  .zeiten-box { margin-top: 12px; }
+  .zeit-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a3060; font-size: 13px; color: #888; }
+  .zeit-row:last-child { border: none; }
+  .zeit-val { color: #69F0AE; font-family: monospace; font-weight: 700; }
+  .beste { color: #C8A415; font-weight: 700; margin-top: 10px; text-align: right; font-size: 14px; }
+
+  .nav-links { text-align: center; margin-top: 16px; font-size: 13px; color: #555; }
+  .nav-links a { color: #C8A415; text-decoration: none; font-weight: 600; margin: 0 8px; }
+
+  .debug { background: #0a0a1a; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 11px; color: #555; max-height: 150px; overflow-y: auto; margin-top: 12px; }
+  .debug .ok { color: #69F0AE; }
+  .debug .err { color: #FF5252; }
+  .debug .info { color: #82B1FF; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="cam-badge">● KI-KAMERA SIMULATOR</div>
+  <h1>📷 Kamera-Simulator</h1>
+  <p>Simuliert die KI-Kamera an der Start/Ziel-Linie</p>
+</div>
+
+<div class="card">
+  <h2>🏎️ Fahrer auswählen</h2>
+  <label>Fahrer</label>
+  <select id="fahrerSelect" onchange="fahrerGewaehlt()">
+    <option value="">-- Wird geladen... --</option>
+  </select>
+</div>
+
+<div class="card">
+  <h2>📡 Kamera-Signal</h2>
+
+  <div class="timer">
+    <div class="timer-label" id="timerLabel">Fahrer auswählen um zu starten</div>
+    <div class="timer-zahl" id="timerZahl">00.000</div>
+  </div>
+
+  <button class="btn-signal start" id="btnSignal" onclick="signalSenden()" disabled>
+    📡 Durchfahrt erkannt — Signal senden
+  </button>
+
+  <div class="status" id="statusBox"></div>
+</div>
+
+<div class="card">
+  <h2>🏁 Zeiten</h2>
+  <div class="zeiten-box" id="zeitenBox">
+    <p style="color:#555;font-size:13px">Noch keine Zeiten.</p>
+  </div>
+  <button onclick="zeitenLaden()" style="width:100%;margin-top:12px;padding:8px;background:none;border:1px solid #1a4a8a;color:#888;border-radius:6px;cursor:pointer;font-size:12px">
+    ↻ Zeiten aktualisieren
+  </button>
+</div>
+
+<div class="card">
+  <h2>📋 Log</h2>
+  <div class="debug" id="debugLog">
+    <div class="info">System bereit...</div>
+  </div>
+</div>
+
+<div class="nav-links">
+  <a href="index.html">📝 Registrierung</a>
+  <a href="leaderboard.html">📊 Leaderboard</a>
+  <a href="dashboard.html">⚙️ Dashboard</a>
+</div>
+
+<script>
+const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
+let aktiverFahrer = null;
+let startTs = null;
+let timerInt = null;
+let wartetAufZiel = false;
+let anzahlTore = 6;
+
+function log(text, typ='info') {
+  const el = document.getElementById('debugLog');
+  const now = new Date().toTimeString().slice(0,8);
+  el.innerHTML = `<div class="${typ}">[${now}] ${text}</div>` + el.innerHTML;
+}
+
+function statusZeigen(text, typ) {
+  const el = document.getElementById('statusBox');
+  el.textContent = text;
+  el.className = 'status ' + typ;
+  el.style.display = 'block';
+  if (typ === 'ok') setTimeout(() => el.style.display = 'none', 5000);
+}
+
+function timerStarten() {
+  startTs = Date.now();
+  wartetAufZiel = true;
+  const zahl = document.getElementById('timerZahl');
+  zahl.classList.add('laueft');
+  document.getElementById('timerLabel').textContent = '⏱️ Stoppuhr läuft...';
+  document.getElementById('btnSignal').className = 'btn-signal ziel';
+  document.getElementById('btnSignal').textContent = '🏁 Zieldurchfahrt — Signal senden';
+  timerInt = setInterval(() => {
+    const sek = (Date.now() - startTs) / 1000;
+    zahl.textContent = sek.toFixed(3).padStart(6, '0');
+  }, 50);
+}
+
+function timerStoppen(finalSek) {
+  if (timerInt) { clearInterval(timerInt); timerInt = null; }
+  wartetAufZiel = false;
+  const zahl = document.getElementById('timerZahl');
+  zahl.classList.remove('laueft');
+  if (finalSek !== undefined) {
+    zahl.textContent = finalSek.toFixed(3).padStart(6, '0');
+  }
+  document.getElementById('timerLabel').textContent = 'Bereit — warte auf Start-Signal';
+  document.getElementById('btnSignal').className = 'btn-signal start';
+  document.getElementById('btnSignal').textContent = '📡 Durchfahrt erkannt — Signal senden';
+}
+
+async function konfigLaden() {
+  try {
+    const res = await fetch(API + '/kamera/config');
+    const data = await res.json();
+    anzahlTore = data.anzahl_tore;
+    log('Kamera-Config: ' + anzahlTore + ' Tore', 'info');
+  } catch(e) {
+    log('Config-Fehler (nutze Standard: 6 Tore)', 'err');
+  }
+}
+
+async function fahrerLaden() {
+  try {
+    const res = await fetch(API + '/fahrer');
+    const daten = await res.json();
+    const sel = document.getElementById('fahrerSelect');
+    if (daten.length === 0) {
+      sel.innerHTML = '<option value="">Keine Fahrer registriert</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">-- Fahrer auswählen --</option>' +
+      daten.map(f => `<option value="${f.id}">#${f.startnummer} — ${f.name} (${f.fahrzeug})</option>`).join('');
+    log('Fahrer geladen: ' + daten.length, 'ok');
+  } catch(e) {
+    log('Fehler beim Laden der Fahrer: ' + e.message, 'err');
+  }
+}
+
+function fahrerGewaehlt() {
+  const sel = document.getElementById('fahrerSelect');
+  const id = parseInt(sel.value);
+  if (!id) {
+    aktiverFahrer = null;
+    document.getElementById('btnSignal').disabled = true;
+    timerStoppen();
+    document.getElementById('timerZahl').textContent = '00.000';
+    document.getElementById('timerLabel').textContent = 'Fahrer auswählen um zu starten';
+    return;
+  }
+  aktiverFahrer = id;
+  document.getElementById('btnSignal').disabled = false;
+  document.getElementById('timerLabel').textContent = 'Bereit — warte auf Start-Signal';
+  timerStoppen();
+  document.getElementById('timerZahl').textContent = '00.000';
+  log('Fahrer ausgewählt: ID ' + id, 'info');
+  zeitenLaden();
+}
+
+async function signalSenden() {
+  if (!aktiverFahrer) return;
+
+  const btn = document.getElementById('btnSignal');
+  btn.disabled = true;
+
+  // Erstes Signal = Tor 1 (Start), zweites Signal = letztes Tor (Ziel)
+  const torNr = wartetAufZiel ? anzahlTore : 1;
+  const ts = Date.now() / 1000;
+  log(`Signal senden — Tor ${torNr}, ts: ${ts.toFixed(3)}`, 'info');
+
+  try {
+    const res = await fetch(API + '/kamera/tor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fahrer_id: aktiverFahrer, tor_nr: torNr, zeitstempel: ts })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      statusZeigen('Fehler: ' + err.detail, 'err');
+      log('Fehler: ' + err.detail, 'err');
+      btn.disabled = false;
+      return;
+    }
+
+    const data = await res.json();
+    log('Antwort: ' + data.status + ' — ' + data.message, 'ok');
+
+    if (data.status === 'start') {
+      timerStarten();
+      statusZeigen('✓ START erkannt — Stoppuhr läuft!', 'info');
+
+    } else if (data.status === 'ziel') {
+      const sek = data.gesamtzeit;
+      timerStoppen(sek);
+      statusZeigen('🏁 ZIEL! Zeit gespeichert: ' + sek.toFixed(3) + 's', 'ok');
+      zeitenLaden();
+
+    } else if (data.status === 'zwischen') {
+      // Zwischentor empfangen — ignoriere (single-gate Simulator)
+      statusZeigen('⚠️ Zwischentor erkannt — warte auf Ziel', 'info');
+    }
+
+  } catch(e) {
+    log('Netzwerkfehler: ' + e.message, 'err');
+    statusZeigen('Server nicht erreichbar!', 'err');
+    timerStoppen();
+  }
+
+  setTimeout(() => { btn.disabled = false; }, 800);
+}
+
+async function zeitenLaden() {
+  if (!aktiverFahrer) return;
+  try {
+    const res = await fetch(API + '/zeiten/' + aktiverFahrer);
+    const zeiten = await res.json();
+    const box = document.getElementById('zeitenBox');
+    if (zeiten.length === 0) {
+      box.innerHTML = '<p style="color:#555;font-size:13px">Noch keine Zeiten.</p>';
+      return;
+    }
+    const beste = Math.min(...zeiten.map(z => z.gesamtzeit));
+    box.innerHTML =
+      zeiten.map((z, i) => `
+        <div class="zeit-row">
+          <span>Lauf ${i+1}</span>
+          <span>Runde: <span class="zeit-val">${z.rundenzeit.toFixed(3)}s</span></span>
+          <span>Gesamt: <span class="zeit-val">${z.gesamtzeit.toFixed(3)}s</span></span>
+        </div>`).join('') +
+      `<div class="beste">⭐ Beste Zeit: ${beste.toFixed(3)}s</div>`;
+  } catch(e) {
+    log('Fehler Zeiten laden: ' + e.message, 'err');
+  }
+}
+
+konfigLaden();
+fahrerLaden();
+</script>
+</body>
+</html>
