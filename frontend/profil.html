@@ -177,6 +177,14 @@ footer { border-top: 1px solid var(--border); padding: 24px; text-align: center;
         <div class="stat-val" id="statLaeufe">0</div>
         <div class="stat-label">Läufe<br>absolviert</div>
       </div>
+      <div class="stat">
+        <div class="stat-val" id="statBestzeit" style="font-size:16px;white-space:nowrap">—</div>
+        <div class="stat-label">Beste<br>Zeit</div>
+      </div>
+      <div class="stat">
+        <button class="btn-sm gold" onclick="openQR()" style="margin-top:4px">📱 QR-Code</button>
+        <div class="stat-label" style="margin-top:6px">Check-in</div>
+      </div>
     </div>
   </div>
 
@@ -188,6 +196,22 @@ footer { border-top: 1px solid var(--border); padding: 24px; text-align: center;
     <div class="empty-state"><div class="empty-icon">⏳</div><p>Wird geladen...</p></div>
   </div>
 
+</div>
+
+<!-- QR-Code Modal -->
+<div class="modal-overlay" id="qrModal" onclick="closeQR()">
+  <div class="modal" onclick="event.stopPropagation()" style="text-align:center;max-width:320px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" style="font-size:16px">Check-in QR-Code</div>
+      <button onclick="closeQR()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="qrImg" style="background:#fff;border-radius:8px;padding:12px;display:inline-block;margin-bottom:12px">
+      <img src="" id="qrImgTag" style="width:200px;height:200px;display:block" alt="QR-Code">
+    </div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5">
+      Zeige diesen Code am Renntag beim Check-in.<br>Der Admin scannt ihn, um dich einzuchecken.
+    </div>
+  </div>
 </div>
 
 <!-- Confirm Abmeldung Modal -->
@@ -245,6 +269,14 @@ async function logout() {
   location.href = 'index.html';
 }
 
+let _myUserId = null;
+function openQR() {
+  if (!_myUserId) return;
+  document.getElementById('qrImgTag').src = API + '/fahrer/' + _myUserId + '/qrcode?t=' + Date.now();
+  document.getElementById('qrModal').classList.add('open');
+}
+function closeQR() { document.getElementById('qrModal').classList.remove('open'); }
+
 function openAbmelde(rennenId, rennenName) {
   abmeldeRennenId = rennenId;
   document.getElementById('abmeldeText').textContent =
@@ -290,8 +322,11 @@ async function loadProfil(session) {
     renderAnmeldungen(anmeldungen);
 
     const totalLaeufe = anmeldungen.reduce((s, a) => s + a.anzahl_laeufe, 0);
+    const allBesteTimes = anmeldungen.map(a => a.beste_zeit).filter(t => t !== null && t !== undefined);
+    const globalBest = allBesteTimes.length ? Math.min(...allBesteTimes) : null;
     document.getElementById('statAnmeldungen').textContent = anmeldungen.length;
     document.getElementById('statLaeufe').textContent = totalLaeufe;
+    document.getElementById('statBestzeit').textContent = globalBest ? fmtZeit(globalBest) : '—';
     document.getElementById('regCount').textContent = `(${anmeldungen.length})`;
   } catch {
     document.getElementById('regList').innerHTML =
@@ -355,6 +390,8 @@ function escHtml(s) {
   try {
     const r = await fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + s.token } });
     if (!r.ok) { clearSession(); document.getElementById('denied').style.display = 'block'; return; }
+    const me = await r.json();
+    _myUserId = me.id;
   } catch {
     document.getElementById('denied').style.display = 'block';
     return;

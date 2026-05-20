@@ -760,6 +760,19 @@ def rennen_per_id_reset(rennen_id: int, admin: User = Depends(_require_admin)):
     db.close()
     return {"message": f"Rennen '{rname}' wieder geöffnet"}
 
+@app.delete("/rennen/{rennen_id}/zeiten")
+def zeiten_loeschen(rennen_id: int, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    zeiten_count = db.query(Zeit).filter(Zeit.rennen_id == rennen_id).delete()
+    db.query(Strafzeit).filter(Strafzeit.rennen_id == rennen_id).delete()
+    db.commit()
+    db.close()
+    return {"message": f"{zeiten_count} Zeiten & alle Strafzeiten für '{r.name}' gelöscht"}
+
 # ── Profil ────────────────────────────────────────────────────
 @app.get("/profil/anmeldungen")
 def meine_anmeldungen(user: User = Depends(_require_auth)):

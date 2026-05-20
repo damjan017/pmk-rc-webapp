@@ -190,8 +190,9 @@ footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-si
             <button class="btn danger" id="btnAbschliessen" onclick="rennAbschliessen()">⏹ Abschließen</button>
             <button class="btn ghost" id="btnReset" onclick="rennReset()">↺ Zurücksetzen</button>
           </div>
-          <div style="margin-top:10px">
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn blue" onclick="openPDF()">🖨️ Ergebnisse PDF</button>
+            <button class="btn ghost" style="font-size:12px;color:var(--red);border-color:var(--red-bg)" onclick="zeitenLoeschen()">🗑 Zeiten löschen</button>
           </div>
         </div>
 
@@ -403,8 +404,9 @@ async function createRennen() {
     const r=await fetch(API+'/rennen',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.token},body:JSON.stringify({name,datum,uhrzeit,ort,ort_link,max_teilnehmer:max,beschreibung:beschreibung||null})});
     const d=await r.json();
     if(!r.ok) return showAlert('createAlert',d.detail||'Fehler','err');
-    showAlert('createAlert','Rennen erstellt!','ok');
-    ['cName','cOrt','cBeschreibung'].forEach(id=>document.getElementById(id).value='');
+    showAlert('createAlert','✅ Rennen erstellt!','ok');
+    ['cName','cDatum','cUhrzeit','cOrt','cOrtLink','cBeschreibung'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('cMax').value='30';
     loadRennenList();
   } catch { showAlert('createAlert','Server nicht erreichbar.','err'); }
 }
@@ -525,6 +527,18 @@ async function checkinDirekt(rennenId, userId) {
   try{const r=await fetch(API+'/rennen/'+rennenId+'/checkin/'+userId,{method:'POST',headers:{Authorization:'Bearer '+s.token}});if(r.ok)loadBetrieb();}catch{}
 }
 function openPDF(){if(betriebRennenId)window.open(API+'/rennen/'+betriebRennenId+'/ergebnisse/pdf','_blank');}
+
+async function zeitenLoeschen() {
+  if(!betriebRennenId)return;
+  if(!confirm('Alle Zeiten & Strafzeiten für dieses Rennen löschen? Das kann nicht rückgängig gemacht werden!'))return;
+  const s=getSession();
+  try {
+    const r=await fetch(API+'/rennen/'+betriebRennenId+'/zeiten',{method:'DELETE',headers:{Authorization:'Bearer '+s.token}});
+    const d=await r.json();
+    if(!r.ok)return showAlert('betriebAlert',d.detail,'err');
+    showAlert('betriebAlert',d.message||'Zeiten gelöscht.','ok');
+  } catch { showAlert('betriebAlert','Fehler.','err'); }
+}
 
 // ── Zeiten Tab ──
 async function loadZeitenTab() {
