@@ -4,3 +4,5 @@ sqlalchemy
 qrcode[pil]
 pydantic
 aiofiles
+apscheduler
+python-dotenv
