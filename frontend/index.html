@@ -3,297 +3,559 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RC-Car Rally — Registrierung</title>
+<title>PMK RC-Car Rally</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #F0F0F0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+:root {
+  --bg:        #09090B;
+  --surface:   #18181B;
+  --surface2:  #27272A;
+  --border:    #3F3F46;
+  --gold:      #F59E0B;
+  --gold-dim:  #92400E;
+  --text:      #FAFAFA;
+  --muted:     #A1A1AA;
+  --dim:       #71717A;
+  --green:     #22C55E;
+  --green-bg:  #14532D;
+  --red:       #EF4444;
+  --red-bg:    #7F1D1D;
+  --blue:      #3B82F6;
+  --radius:    10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
 
-  /* ── Top-Navigation ── */
-  .topnav {
-    background: #1E1E1E;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    flex-shrink: 0;
-  }
-  .topnav-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-    font-weight: 700;
-    font-size: 15px;
-    text-decoration: none;
-  }
-  .topnav-brand span { color: #C8A415; }
-  .topnav-links { display: flex; gap: 4px; }
-  .topnav-links a {
-    color: #AAA;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background 0.15s, color 0.15s;
-  }
-  .topnav-links a:hover { background: #2E2E2E; color: white; }
-  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+/* ── Nav ── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(9,9,11,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  height: 60px; display: flex; align-items: center;
+  padding: 0 24px; gap: 32px;
+}
+.nav-brand { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.nav-brand em { color: var(--gold); font-style: normal; }
+.nav-links { display: flex; gap: 4px; flex: 1; }
+.nav-links a {
+  font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px;
+  color: var(--muted); transition: color .15s, background .15s;
+}
+.nav-links a:hover { color: var(--text); background: var(--surface2); }
+.nav-links a.active { color: var(--text); }
+.nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.nav-user { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.nav-avatar {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--gold);
+}
+.btn-outline {
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); color: var(--muted); background: none; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-gold {
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  background: var(--gold); color: #09090B; border: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-gold:hover { opacity: .85; }
 
-  /* ── Page body ── */
-  .page-body {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
-  }
-  .card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 6px 32px rgba(0,0,0,0.10);
-    padding: 40px;
-    width: 100%;
-    max-width: 460px;
-  }
-  .logo {
-    text-align: center;
-    margin-bottom: 28px;
-  }
-  .logo h1 {
-    font-size: 22px;
-    color: #1E1E1E;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-  .logo p {
-    color: #999;
-    font-size: 13px;
-    margin-top: 4px;
-  }
-  .gold-line {
-    height: 3px;
-    background: linear-gradient(90deg, #C8A415, #E8C84A);
-    border-radius: 2px;
-    margin: 14px auto 0;
-    width: 48px;
-  }
-  label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: #555;
-    margin-bottom: 6px;
-    margin-top: 18px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-  input[type="text"], input[type="email"] {
-    width: 100%;
-    padding: 11px 14px;
-    border: 1.5px solid #E0E0E0;
-    border-radius: 8px;
-    font-size: 15px;
-    color: #1E1E1E;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    outline: none;
-    background: #FAFAFA;
-  }
-  input:focus {
-    border-color: #C8A415;
-    background: white;
-    box-shadow: 0 0 0 3px rgba(200,164,21,0.12);
-  }
-  .checkbox-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-top: 20px;
-    padding: 14px;
-    background: #FFFBEB;
-    border-radius: 8px;
-    border: 1.5px solid #F0D060;
-  }
-  .checkbox-row input[type="checkbox"] {
-    width: 17px; height: 17px;
-    margin-top: 2px;
-    accent-color: #C8A415;
-    flex-shrink: 0;
-    cursor: pointer;
-  }
-  .checkbox-row span { font-size: 13px; color: #666; line-height: 1.5; }
-  .btn {
-    width: 100%;
-    padding: 13px;
-    background: #1E1E1E;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 22px;
-    transition: background 0.2s, transform 0.1s;
-    letter-spacing: 0.2px;
-  }
-  .btn:hover { background: #C8A415; }
-  .btn:active { transform: scale(0.99); }
-  .btn:disabled { background: #CCC; cursor: not-allowed; transform: none; }
-  .success {
-    display: none;
-    text-align: center;
-    padding: 16px 0;
-  }
-  .success .badge { font-size: 44px; margin-bottom: 10px; }
-  .success h2 { color: #2E7D32; margin-bottom: 8px; font-size: 20px; }
-  .success p { color: #666; margin-bottom: 4px; font-size: 14px; }
-  .startnummer {
-    font-size: 56px;
-    font-weight: 900;
-    color: #C8A415;
-    margin: 8px 0;
-    line-height: 1;
-  }
-  .qr-btn {
-    display: inline-block;
-    margin-top: 16px;
-    padding: 10px 24px;
-    background: #F5F5F5;
-    border: 1.5px solid #E0E0E0;
-    border-radius: 8px;
-    color: #1E1E1E;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: border-color 0.2s;
-  }
-  .qr-btn:hover { border-color: #C8A415; }
-  .error-msg {
-    display: none;
-    background: #FFF0F0;
-    color: #C62828;
-    border-radius: 8px;
-    padding: 11px 14px;
-    font-size: 13px;
-    margin-top: 14px;
-    border: 1.5px solid #FFCDD2;
-  }
+/* ── Hero ── */
+.hero {
+  max-width: 860px; margin: 0 auto; padding: 72px 24px 56px;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3);
+  color: var(--gold); font-size: 11px; font-weight: 700; padding: 5px 14px;
+  border-radius: 20px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: .6px;
+}
+.hero h1 { font-size: clamp(32px,6vw,54px); font-weight: 900; line-height: 1.1; }
+.hero h1 em { color: var(--gold); font-style: normal; }
+.hero p { color: var(--muted); font-size: 17px; margin-top: 14px; line-height: 1.6; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+.btn-hero {
+  padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: opacity .15s, transform .1s; border: none;
+}
+.btn-hero:active { transform: scale(.98); }
+.btn-hero.primary { background: var(--gold); color: #09090B; }
+.btn-hero.primary:hover { opacity: .85; }
+.btn-hero.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-hero.secondary:hover { background: var(--surface2); }
+
+/* ── Section ── */
+.section { max-width: 1080px; margin: 0 auto; padding: 0 24px 64px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.section-title { font-size: 20px; font-weight: 800; }
+.section-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ── Race cards ── */
+.races-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
+.race-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; transition: border-color .15s, transform .15s; cursor: pointer;
+}
+.race-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+.race-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.race-name { font-size: 16px; font-weight: 700; }
+.status-pill {
+  font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.status-pill.offen     { background: rgba(34,197,94,.12); color: #22C55E; border: 1px solid rgba(34,197,94,.3); }
+.status-pill.laufend   { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
+.status-pill.abgeschlossen { background: var(--surface2); color: var(--dim); border: 1px solid var(--border); }
+.race-meta { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.race-meta-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.race-meta-row svg { flex-shrink: 0; }
+.race-desc { font-size: 12px; color: var(--dim); margin-top: 8px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.race-footer { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.race-teilnehmer { font-size: 12px; color: var(--muted); }
+.race-teilnehmer strong { color: var(--text); }
+.btn-sm {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  cursor: pointer; border: none; transition: opacity .15s;
+}
+.btn-sm.gold { background: var(--gold); color: #09090B; }
+.btn-sm.gold:hover { opacity: .85; }
+.btn-sm.ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
+.btn-sm.ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-sm.danger { background: none; border: 1px solid var(--red-bg); color: var(--red); }
+.btn-sm.danger:hover { background: var(--red-bg); }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--dim); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 28px; width: 100%; max-width: 400px;
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 800; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 8px; padding: 3px; margin-bottom: 20px; }
+.tab {
+  flex: 1; text-align: center; padding: 7px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  cursor: pointer; color: var(--muted); transition: all .15s; background: none; border: none;
+}
+.tab.active { background: var(--surface); color: var(--text); }
+
+/* ── Form elements ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 14px; color: var(--text); outline: none;
+  transition: border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+.field textarea { resize: vertical; min-height: 80px; }
+.field select option { background: var(--surface); }
+.check-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.2); border-radius: 8px; }
+.check-row input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--gold); flex-shrink: 0; cursor: pointer; }
+.check-row span { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.btn-full { width: 100%; padding: 12px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; background: var(--gold); color: #09090B; transition: opacity .15s; margin-top: 4px; }
+.btn-full:hover { opacity: .85; }
+.btn-full:disabled { opacity: .4; cursor: not-allowed; }
+.alert { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+.alert.error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #FCA5A5; }
+.alert.success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #86EFAC; }
+.divider { text-align: center; color: var(--dim); font-size: 12px; margin: 12px 0; }
+
+/* ── Anmelde-Modal ── */
+.anmelde-race-info { background: var(--surface2); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+.anmelde-race-name { font-weight: 700; font-size: 15px; }
+.anmelde-race-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ── Footer ── */
+footer { border-top: 1px solid var(--border); padding: 28px 24px; text-align: center; font-size: 12px; color: var(--dim); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .hero { padding: 48px 16px 40px; }
+  .section { padding: 0 16px 48px; }
+}
 </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
-  <div class="topnav-links">
-    <a href="index.html" class="active">Registrierung</a>
-    <a href="leaderboard.html">Leaderboard</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="kamera.html">Kamera</a>
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <div class="nav-brand">🏁 PMK RC-Car <em>Rally</em></div>
+  <div class="nav-links">
+    <a href="index.html" class="active">Rennen</a>
+    <a href="leaderboard.html">Rangliste</a>
+    <span id="navProfilLink" style="display:none"><a href="profil.html">Mein Profil</a></span>
+    <span id="navAdminLink" style="display:none"><a href="admin.html">Admin</a></span>
+    <span id="navSimulatorLink" style="display:none"><a href="/simulator">📡 Kamera-Sim</a></span>
+  </div>
+  <div class="nav-right" id="navRight">
+    <button class="btn-outline" onclick="openAuth('login')">Anmelden</button>
+    <button class="btn-gold" onclick="openAuth('register')">Registrieren</button>
+  </div>
+  <div class="nav-right" id="navUser" style="display:none">
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatar">?</div>
+      <span id="navName"></span>
+    </div>
+    <button class="btn-outline" onclick="logout()">Abmelden</button>
   </div>
 </nav>
 
-<div class="page-body">
-  <div class="card">
-    <div class="logo">
-      <h1>Online-Registrierung</h1>
-      <p>RC-Car Rally 2026 — PMK</p>
-      <div class="gold-line"></div>
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-badge">🏎️ Offiziell · PMK 2026</div>
+  <h1>RC-Car Rally<br><em>Management</em></h1>
+  <p>Melde dich an, wähle dein Rennen und tritt gegen andere Fahrer an.<br>Verfolge deine Zeiten live in der Rangliste.</p>
+  <div class="hero-actions">
+    <button class="btn-hero primary" onclick="scrollToRennen()">Rennen ansehen</button>
+    <button class="btn-hero secondary" id="heroAuthBtn" onclick="openAuth('register')">Jetzt registrieren</button>
+  </div>
+</div>
+
+<!-- ── Rennen-Liste ── -->
+<div class="section" id="rennenSection">
+  <div class="section-head">
+    <div>
+      <div class="section-title">Anstehende Rennen</div>
+      <div class="section-sub" id="rennenSubtitle">Wähle ein Rennen und melde dein Fahrzeug an</div>
+    </div>
+    <a href="leaderboard.html" style="font-size:13px;color:var(--gold);font-weight:600">Rangliste →</a>
+  </div>
+  <div class="races-grid" id="racesGrid">
+    <div class="empty-state"><div class="empty-icon">⏳</div><p>Wird geladen...</p></div>
+  </div>
+</div>
+
+<!-- ── Auth Modal ── -->
+<div class="modal-overlay" id="authModal" onclick="closeAuthOnBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="authTitle">Anmelden</div>
+      <button class="modal-close" onclick="closeAuth()">✕</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tabLogin" onclick="switchTab('login')">Login</button>
+      <button class="tab" id="tabRegister" onclick="switchTab('register')">Registrieren</button>
+    </div>
+    <div id="authAlert" style="display:none"></div>
+
+    <!-- Login -->
+    <div id="formLogin">
+      <div class="field"><label>E-Mail</label><input type="email" id="loginEmail" placeholder="deine@email.de" onkeydown="enterSubmit(event,'doLogin')"></div>
+      <div class="field"><label>Passwort</label><input type="password" id="loginPw" placeholder="••••••••" onkeydown="enterSubmit(event,'doLogin')"></div>
+      <button class="btn-full" onclick="doLogin()">Anmelden</button>
+      <div class="divider">oder</div>
+      <button class="btn-full" style="background:var(--surface2);color:var(--text)" onclick="switchTab('register')">Neues Konto erstellen</button>
     </div>
 
-    <div id="formSection">
-      <label for="name">Vollständiger Name</label>
-      <input type="text" id="name" placeholder="z.B. Max Mustermann">
-
-      <label for="email">E-Mail-Adresse</label>
-      <input type="email" id="email" placeholder="z.B. max@email.de">
-
-      <label for="fahrzeug">Fahrzeugbezeichnung</label>
-      <input type="text" id="fahrzeug" placeholder="z.B. Traxxas Slash 4x4">
-
-      <div class="checkbox-row">
-        <input type="checkbox" id="einwilligung">
-        <span>Ich stimme der Verarbeitung meiner Daten für die Durchführung der Rally zu. Die Daten werden nach dem Event gelöscht (DSGVO).</span>
-      </div>
-
-      <div class="error-msg" id="errorMsg"></div>
-
-      <button class="btn" onclick="registrieren()" id="submitBtn">
-        Jetzt anmelden →
-      </button>
-    </div>
-
-    <div class="success" id="successSection">
-      <div class="badge">✅</div>
-      <h2>Erfolgreich angemeldet!</h2>
-      <p>Deine Startnummer:</p>
-      <div class="startnummer" id="startnummerAnzeige"></div>
-      <p style="color:#999;font-size:13px">Zeige diesen QR-Code beim Check-in vor</p>
-      <br>
-      <a class="qr-btn" id="qrLink" target="_blank">📱 QR-Code anzeigen</a>
+    <!-- Register -->
+    <div id="formRegister" style="display:none">
+      <div class="field"><label>Name</label><input type="text" id="regName" placeholder="Vor- und Nachname"></div>
+      <div class="field"><label>E-Mail</label><input type="email" id="regEmail" placeholder="deine@email.de"></div>
+      <div class="field"><label>Passwort</label><input type="password" id="regPw" placeholder="Min. 6 Zeichen" onkeydown="enterSubmit(event,'doRegister')"></div>
+      <button class="btn-full" onclick="doRegister()">Konto erstellen</button>
     </div>
   </div>
 </div>
 
+<!-- ── Renn-Anmeldung Modal ── -->
+<div class="modal-overlay" id="anmeldeModal" onclick="closeAnmeldeOnBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Für Rennen anmelden</div>
+      <button class="modal-close" onclick="closeAnmelde()">✕</button>
+    </div>
+    <div class="anmelde-race-info">
+      <div class="anmelde-race-name" id="anmeldeName"></div>
+      <div class="anmelde-race-meta" id="anmeldeMeta"></div>
+    </div>
+    <div id="anmeldeAlert" style="display:none"></div>
+    <div id="anmeldeForm">
+      <div class="field"><label>Fahrzeugbezeichnung</label><input type="text" id="anmeldeFahrzeug" placeholder="z.B. Traxxas Slash 4x4"></div>
+      <div class="check-row" style="margin-bottom:14px">
+        <input type="checkbox" id="anmeldeEinwilligung">
+        <span>Ich stimme der Verarbeitung meiner Daten für dieses Rennen zu (DSGVO). Daten werden nach dem Event gelöscht.</span>
+      </div>
+      <button class="btn-full" onclick="doAnmelden()">Jetzt anmelden</button>
+    </div>
+    <div id="anmeldeSuccess" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:40px;margin-bottom:8px">✅</div>
+      <div style="font-weight:700;font-size:16px;margin-bottom:4px">Erfolgreich angemeldet!</div>
+      <div style="color:var(--muted);font-size:13px">Deine Startnummer: <strong id="anmeldeNr" style="color:var(--gold);font-size:18px"></strong></div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn-sm ghost" onclick="closeAnmelde();loadRennen()">Schließen</button>
+        <a href="profil.html"><button class="btn-sm gold">Mein Profil →</button></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>PMK RC-Car Rally 2026 · <a href="leaderboard.html" style="color:var(--gold)">Rangliste</a> · <a href="faq.html" style="color:var(--gold)">Infos & FAQ</a> · <a href="impressum.html" style="color:var(--dim)">Impressum</a></footer>
+
 <script>
-const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
+const API = window.location.origin;
+let currentRennenId = null;
 
-async function registrieren() {
-  const name = document.getElementById('name').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const fahrzeug = document.getElementById('fahrzeug').value.trim();
-  const einwilligung = document.getElementById('einwilligung').checked;
-  const errorMsg = document.getElementById('errorMsg');
-  const btn = document.getElementById('submitBtn');
+// ── Session ──
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('rally_session') || 'null'); }
+  catch { return null; }
+}
+function setSession(s) { localStorage.setItem('rally_session', JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem('rally_session'); }
 
-  errorMsg.style.display = 'none';
-
-  if (!name || !email || !fahrzeug) {
-    errorMsg.textContent = 'Bitte alle Felder ausfüllen.';
-    errorMsg.style.display = 'block';
-    return;
-  }
-  if (!einwilligung) {
-    errorMsg.textContent = 'Bitte die Datenschutz-Einwilligung bestätigen.';
-    errorMsg.style.display = 'block';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Wird registriert...';
-
-  try {
-    const res = await fetch(API + '/fahrer', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name, email, fahrzeug, einwilligung})
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      errorMsg.textContent = data.detail || 'Fehler bei der Registrierung.';
-      errorMsg.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Jetzt anmelden →';
-      return;
+// ── Nav ──
+function applySession() {
+  const s = getSession();
+  if (s && s.token) {
+    document.getElementById('navRight').style.display = 'none';
+    document.getElementById('navUser').style.display = 'flex';
+    document.getElementById('navName').textContent = s.name;
+    document.getElementById('navAvatar').textContent = s.name.charAt(0).toUpperCase();
+    document.getElementById('navProfilLink').style.display = 'inline';
+    document.getElementById('heroAuthBtn').textContent = 'Mein Profil';
+    document.getElementById('heroAuthBtn').onclick = () => location.href = 'profil.html';
+    if (s.rolle === 'admin') {
+      document.getElementById('navAdminLink').style.display = 'inline';
+      document.getElementById('navSimulatorLink').style.display = 'inline';
     }
-    document.getElementById('startnummerAnzeige').textContent = '#' + data.startnummer;
-    document.getElementById('qrLink').href = data.qr_code_url;
-    document.getElementById('formSection').style.display = 'none';
-    document.getElementById('successSection').style.display = 'block';
-  } catch(e) {
-    errorMsg.textContent = 'Server nicht erreichbar. Ist der Backend-Server gestartet?';
-    errorMsg.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Jetzt anmelden →';
+  } else {
+    document.getElementById('navRight').style.display = 'flex';
+    document.getElementById('navUser').style.display = 'none';
+    document.getElementById('navProfilLink').style.display = 'none';
+    document.getElementById('navAdminLink').style.display = 'none';
+    document.getElementById('heroAuthBtn').textContent = 'Jetzt registrieren';
+    document.getElementById('heroAuthBtn').onclick = () => openAuth('register');
   }
 }
+
+async function logout() {
+  const s = getSession();
+  if (s?.token) {
+    try { await fetch(API + '/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + s.token } }); }
+    catch {}
+  }
+  clearSession();
+  applySession();
+  loadRennen();
+}
+
+// ── Auth Modal ──
+function openAuth(tab = 'login') {
+  clearAlert('authAlert');
+  switchTab(tab);
+  document.getElementById('authModal').classList.add('open');
+}
+function closeAuth() { document.getElementById('authModal').classList.remove('open'); }
+function closeAuthOnBg(e) { if (e.target === document.getElementById('authModal')) closeAuth(); }
+
+function switchTab(tab) {
+  document.getElementById('formLogin').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('formRegister').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tabLogin').className = 'tab' + (tab === 'login' ? ' active' : '');
+  document.getElementById('tabRegister').className = 'tab' + (tab === 'register' ? ' active' : '');
+  document.getElementById('authTitle').textContent = tab === 'login' ? 'Anmelden' : 'Konto erstellen';
+  clearAlert('authAlert');
+}
+
+function showAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  el.className = 'alert ' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function clearAlert(id) { document.getElementById(id).style.display = 'none'; }
+function enterSubmit(e, fn) { if (e.key === 'Enter') window[fn](); }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPw').value;
+  if (!email || !pw) return showAlert('authAlert', 'Bitte alle Felder ausfüllen.');
+  try {
+    const r = await fetch(API + '/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, passwort: pw }),
+    });
+    const d = await r.json();
+    if (!r.ok) return showAlert('authAlert', d.detail || 'Login fehlgeschlagen.');
+    setSession(d);
+    closeAuth();
+    applySession();
+    loadRennen();
+  } catch { showAlert('authAlert', 'Server nicht erreichbar.'); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPw').value;
+  if (!name || !email || !pw) return showAlert('authAlert', 'Bitte alle Felder ausfüllen.');
+  if (pw.length < 6) return showAlert('authAlert', 'Passwort min. 6 Zeichen.');
+  try {
+    const r = await fetch(API + '/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, passwort: pw }),
+    });
+    const d = await r.json();
+    if (!r.ok) return showAlert('authAlert', d.detail || 'Registrierung fehlgeschlagen.');
+    showAlert('authAlert', 'Konto erstellt! Jetzt anmelden.', 'success');
+    setTimeout(() => switchTab('login'), 1000);
+    document.getElementById('loginEmail').value = email;
+  } catch { showAlert('authAlert', 'Server nicht erreichbar.'); }
+}
+
+// ── Rennen laden ──
+function scrollToRennen() {
+  document.getElementById('rennenSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function loadRennen() {
+  const s = getSession();
+  try {
+    const r = await fetch(API + '/rennen');
+    const rennen = await r.json();
+    renderRennen(rennen, s);
+  } catch {
+    document.getElementById('racesGrid').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Server nicht erreichbar</p></div>';
+  }
+}
+
+function statusLabel(status) {
+  if (status === 'offen') return '<span class="status-pill offen">Offen</span>';
+  if (status === 'laufend') return '<span class="status-pill laufend">● Läuft</span>';
+  return '<span class="status-pill abgeschlossen">Abgeschlossen</span>';
+}
+
+function fmtDatum(datum, uhrzeit) {
+  if (!datum) return '';
+  try {
+    const d = new Date(datum + 'T' + (uhrzeit || '00:00'));
+    return d.toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' })
+           + (uhrzeit ? ' · ' + uhrzeit + ' Uhr' : '');
+  } catch { return datum + (uhrzeit ? ' ' + uhrzeit : ''); }
+}
+
+function renderRennen(rennen, session) {
+  const grid = document.getElementById('racesGrid');
+  if (!rennen.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Noch keine Rennen geplant.</p>' +
+      (session?.rolle === 'admin' ? '<br><a href="admin.html" style="color:var(--gold)">Rennen erstellen →</a>' : '') +
+      '</div>';
+    return;
+  }
+  grid.innerHTML = rennen.map(r => {
+    const canRegister = r.status !== 'abgeschlossen' && session;
+    const btnHtml = canRegister
+      ? `<button class="btn-sm gold" onclick="openAnmelden(${r.id},'${escHtml(r.name)}','${r.datum}','${r.uhrzeit}','${escHtml(r.ort)}')">Anmelden</button>`
+      : r.status === 'abgeschlossen'
+        ? `<a href="leaderboard.html?rennen=${r.id}"><button class="btn-sm ghost">Ergebnisse</button></a>`
+        : `<button class="btn-sm ghost" onclick="openAuth('register')">Anmelden →</button>`;
+    return `
+    <div class="race-card" onclick="cardClick(event,${r.id})">
+      <div class="race-card-top">
+        <div class="race-name">${escHtml(r.name)}</div>
+        ${statusLabel(r.status)}
+      </div>
+      <div class="race-meta">
+        <div class="race-meta-row">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ${fmtDatum(r.datum, r.uhrzeit)}
+        </div>
+        <div class="race-meta-row">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-6-8-13a8 8 0 0116 0c0 7-8 13-8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+          ${r.ort_link
+            ? `<a href="${escHtml(r.ort_link)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;text-underline-offset:2px" onclick="event.stopPropagation()">${escHtml(r.ort)} ↗</a>`
+            : escHtml(r.ort)}
+        </div>
+      </div>
+      ${r.beschreibung ? `<div class="race-desc">${escHtml(r.beschreibung)}</div>` : ''}
+      <div class="race-footer">
+        <div class="race-teilnehmer"><strong>${r.teilnehmer_count}</strong> / ${r.max_teilnehmer} Fahrer</div>
+        ${btnHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cardClick(e, id) {
+  if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A') return;
+  location.href = 'leaderboard.html?rennen=' + id;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Renn-Anmeldung ──
+function openAnmelden(id, name, datum, uhrzeit, ort) {
+  const s = getSession();
+  if (!s) { openAuth('login'); return; }
+  currentRennenId = id;
+  document.getElementById('anmeldeName').textContent = name;
+  document.getElementById('anmeldeMeta').textContent = fmtDatum(datum, uhrzeit) + ' · ' + ort;
+  document.getElementById('anmeldeFahrzeug').value = '';
+  document.getElementById('anmeldeEinwilligung').checked = false;
+  document.getElementById('anmeldeForm').style.display = '';
+  document.getElementById('anmeldeSuccess').style.display = 'none';
+  clearAlert('anmeldeAlert');
+  document.getElementById('anmeldeModal').classList.add('open');
+}
+function closeAnmelde() { document.getElementById('anmeldeModal').classList.remove('open'); }
+function closeAnmeldeOnBg(e) { if (e.target === document.getElementById('anmeldeModal')) closeAnmelde(); }
+
+async function doAnmelden() {
+  const s = getSession();
+  if (!s) { closeAnmelde(); openAuth('login'); return; }
+  const fahrzeug = document.getElementById('anmeldeFahrzeug').value.trim();
+  const einwilligung = document.getElementById('anmeldeEinwilligung').checked;
+  if (!fahrzeug) return showAlert('anmeldeAlert', 'Bitte Fahrzeugbezeichnung eingeben.');
+  if (!einwilligung) return showAlert('anmeldeAlert', 'Bitte Datenschutz-Einwilligung bestätigen.');
+  try {
+    const r = await fetch(API + '/rennen/' + currentRennenId + '/anmelden', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.token },
+      body: JSON.stringify({ fahrzeug, einwilligung }),
+    });
+    const d = await r.json();
+    if (!r.ok) return showAlert('anmeldeAlert', d.detail || 'Anmeldung fehlgeschlagen.');
+    document.getElementById('anmeldeNr').textContent = '#' + d.startnummer;
+    document.getElementById('anmeldeForm').style.display = 'none';
+    document.getElementById('anmeldeSuccess').style.display = '';
+    clearAlert('anmeldeAlert');
+  } catch { showAlert('anmeldeAlert', 'Server nicht erreichbar.'); }
+}
+
+// ── Init ──
+applySession();
+loadRennen();
+
+// Verify token on load
+(async () => {
+  const s = getSession();
+  if (s?.token) {
+    try {
+      const r = await fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + s.token } });
+      if (!r.ok) { clearSession(); applySession(); }
+    } catch {}
+  }
+})();
 </script>
 </body>
 </html>

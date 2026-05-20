@@ -1,35 +1,65 @@
-from fastapi import FastAPI, HTTPException, Request
+import hashlib
+import secrets
+import socket
+import os
+import io
+from datetime import datetime
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import qrcode
-import io
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
 
+# ── Datenbank ─────────────────────────────────────────────────
 DATABASE_URL = "sqlite:///./rally.db"
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# ── Modelle ──────────────────────────────────────────────────
-class Fahrer(Base):
-    __tablename__ = "fahrer"
+# ── ORM-Modelle ───────────────────────────────────────────────
+class User(Base):
+    __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    email = Column(String, unique=True)
-    startnummer = Column(Integer)
+    email = Column(String, unique=True, nullable=False)
+    passwort_hash = Column(String, nullable=False)
+    rolle = Column(String, default="fahrer")
+    token = Column(String, unique=True, nullable=True)
+
+class Rennen(Base):
+    __tablename__ = "rennen"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    datum = Column(String)          # "2026-06-15"
+    uhrzeit = Column(String)        # "14:00"
+    ort = Column(String)
+    ort_link = Column(String, nullable=True)    # Google Maps / Standort-URL
+    beschreibung = Column(Text, nullable=True)
+    max_teilnehmer = Column(Integer, default=50)
+    status = Column(String, default="offen")   # offen | laufend | abgeschlossen
+    erstellt_am = Column(String)
+
+class RennAnmeldung(Base):
+    __tablename__ = "renn_anmeldungen"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    rennen_id = Column(Integer, nullable=True)
     fahrzeug = Column(String)
     einwilligung = Column(Boolean, default=False)
+    startnummer = Column(Integer)
     eingecheckt = Column(Boolean, default=False)
 
 class Zeit(Base):
     __tablename__ = "zeiten"
     id = Column(Integer, primary_key=True)
     fahrer_id = Column(Integer)
+    rennen_id = Column(Integer, nullable=True)
     rundenzeit = Column(Float)
     strafzeit = Column(Float, default=0.0)
     gesamtzeit = Column(Float)
@@ -38,39 +68,96 @@ class Strafzeit(Base):
     __tablename__ = "strafzeiten"
     id = Column(Integer, primary_key=True)
     fahrer_id = Column(Integer)
+    rennen_id = Column(Integer, nullable=True)
     strafzeit = Column(Float)
     grund = Column(String)
 
-class RennStatus(Base):
-    __tablename__ = "renn_status"
-    id = Column(Integer, primary_key=True)
-    abgeschlossen = Column(Boolean, default=False)
-    abgeschlossen_um = Column(String, nullable=True)
-
-# Tor-Durchfahrten speichern
 class TorSignal(Base):
     __tablename__ = "tor_signale"
     id = Column(Integer, primary_key=True)
     fahrer_id = Column(Integer)
-    tor_nr = Column(Integer)       # 1 = erstes Tor, N = letztes Tor
-    zeitstempel = Column(Float)    # Unix timestamp
-    lauf_id = Column(Integer)      # welcher Lauf (wird hochgezählt)
+    tor_nr = Column(Integer)
+    zeitstempel = Column(Float)
+    lauf_id = Column(Integer)
 
 Base.metadata.create_all(bind=engine)
 
-def init_status():
-    db = SessionLocal()
-    if db.query(RennStatus).count() == 0:
-        db.add(RennStatus(abgeschlossen=False))
-        db.commit()
-    db.close()
+# ── DB-Migration (neue Spalten hinzufügen) ────────────────────
+def _migrate_db():
+    import sqlite3
+    con = sqlite3.connect("./rally.db")
+    cur = con.cursor()
+    for table, col in [
+        ("renn_anmeldungen", "rennen_id"),
+        ("zeiten", "rennen_id"),
+        ("strafzeiten", "rennen_id"),
+        ("rennen", "ort_link"),
+    ]:
+        try:
+            cols = [r[1] for r in cur.execute(f"PRAGMA table_info({table})").fetchall()]
+            if col not in cols:
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} INTEGER")
+        except Exception:
+            pass
+    con.commit()
+    con.close()
 
-init_status()
+def _init_db():
+    _migrate_db()
 
-# Anzahl Tore (anpassbar)
+_init_db()
+
 ANZAHL_TORE = 6
 
-app = FastAPI(title="RC-Car Rally API")
+# ── Helpers ───────────────────────────────────────────────────
+def _hash(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def _new_token() -> str:
+    return secrets.token_hex(32)
+
+def _get_user_by_token(token: str):
+    if not token:
+        return None
+    db = SessionLocal()
+    u = db.query(User).filter(User.token == token).first()
+    db.close()
+    return u
+
+def _require_admin(authorization: str = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = _get_user_by_token(token)
+    if not user or user.rolle != "admin":
+        raise HTTPException(status_code=403, detail="Nur für Admins")
+    return user
+
+def _require_auth(authorization: str = Header(None)):
+    token = authorization.replace("Bearer ", "") if authorization else None
+    user = _get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Nicht eingeloggt")
+    return user
+
+def _local_ip() -> str:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+def _rennen_dict(r, teilnehmer_count=0):
+    return {
+        "id": r.id, "name": r.name, "datum": r.datum, "uhrzeit": r.uhrzeit,
+        "ort": r.ort, "ort_link": r.ort_link, "beschreibung": r.beschreibung,
+        "max_teilnehmer": r.max_teilnehmer, "status": r.status,
+        "erstellt_am": r.erstellt_am, "teilnehmer_count": teilnehmer_count,
+    }
+
+# ── App ───────────────────────────────────────────────────────
+app = FastAPI(title="PMK RC-Rally API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,123 +166,391 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Pydantic Models ──────────────────────────────────────────
-class FahrerCreate(BaseModel):
+# ── Pydantic Schemas ──────────────────────────────────────────
+class RegisterSchema(BaseModel):
     name: str
     email: str
+    passwort: str
+
+class LoginSchema(BaseModel):
+    email: str
+    passwort: str
+
+class RennenSchema(BaseModel):
+    name: str
+    datum: str
+    uhrzeit: str
+    ort: str
+    ort_link: Optional[str] = None
+    beschreibung: Optional[str] = None
+    max_teilnehmer: int = 50
+
+class RennAnmeldungSchema(BaseModel):
     fahrzeug: str
     einwilligung: bool
 
-class ZeitCreate(BaseModel):
+class ZeitSchema(BaseModel):
     fahrer_id: int
+    rennen_id: int
     rundenzeit: float
     strafzeit: float = 0.0
 
-class StrafzeitCreate(BaseModel):
+class StrafzeitSchema(BaseModel):
     fahrer_id: int
+    rennen_id: int
     strafzeit: float
     grund: str
 
-class TorSignalCreate(BaseModel):
+class TorSignalSchema(BaseModel):
     fahrer_id: int
     tor_nr: int
     zeitstempel: float
 
-# ── Hilfsfunktion ────────────────────────────────────────────
-def rennen_offen():
+# ── Auth ──────────────────────────────────────────────────────
+@app.post("/auth/register")
+def register(data: RegisterSchema):
+    if not data.name.strip() or not data.email.strip() or not data.passwort.strip():
+        raise HTTPException(status_code=400, detail="Alle Felder erforderlich")
     db = SessionLocal()
-    s = db.query(RennStatus).first()
-    db.close()
-    return not s.abgeschlossen
-
-# ── Basis ────────────────────────────────────────────────────
-@app.get("/")
-def root():
-    return {"message": "PMK RC-Rally API läuft!"}
-
-@app.get("/status")
-def status():
-    db = SessionLocal()
-    s = db.query(RennStatus).first()
-    db.close()
-    return {"abgeschlossen": s.abgeschlossen, "abgeschlossen_um": s.abgeschlossen_um}
-
-# ── Fahrer ───────────────────────────────────────────────────
-@app.post("/fahrer")
-def fahrer_registrieren(fahrer: FahrerCreate, request: Request):
-    if not rennen_offen():
-        raise HTTPException(status_code=403, detail="Rennen ist bereits abgeschlossen")
-    if not fahrer.einwilligung:
-        raise HTTPException(status_code=400, detail="Einwilligung erforderlich")
-    db = SessionLocal()
-    if db.query(Fahrer).filter(Fahrer.email == fahrer.email).first():
+    if db.query(User).filter(User.email == data.email.lower()).first():
         db.close()
-        raise HTTPException(status_code=400, detail="Diese E-Mail ist bereits registriert")
-    neuer_fahrer = Fahrer(
-        name=fahrer.name, email=fahrer.email, fahrzeug=fahrer.fahrzeug,
-        einwilligung=fahrer.einwilligung, startnummer=db.query(Fahrer).count() + 1
+        raise HTTPException(status_code=400, detail="E-Mail bereits registriert")
+    user = User(
+        name=data.name.strip(),
+        email=data.email.lower().strip(),
+        passwort_hash=_hash(data.passwort),
+        rolle="fahrer",
+        token=None,
     )
-    db.add(neuer_fahrer)
+    db.add(user)
     db.commit()
-    db.refresh(neuer_fahrer)
+    db.refresh(user)
+    uid = user.id
+    uname = user.name
+    db.close()
+    return {"message": f"Account für {uname} erstellt", "id": uid}
+
+@app.post("/auth/login")
+def login(data: LoginSchema):
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == data.email.lower().strip()).first()
+    if not user or user.passwort_hash != _hash(data.passwort):
+        db.close()
+        raise HTTPException(status_code=401, detail="E-Mail oder Passwort falsch")
+    token = _new_token()
+    user.token = token
+    db.commit()
+    uid, uname, uemail, urolle = user.id, user.name, user.email, user.rolle
+    db.close()
+    return {"token": token, "rolle": urolle, "name": uname, "email": uemail, "id": uid}
+
+@app.post("/auth/logout")
+def logout(user: User = Depends(_require_auth)):
+    db = SessionLocal()
+    u = db.query(User).filter(User.id == user.id).first()
+    u.token = None
+    db.commit()
+    db.close()
+    return {"message": "Ausgeloggt"}
+
+@app.get("/auth/me")
+def me(user: User = Depends(_require_auth)):
+    db = SessionLocal()
+    anmeldungen_count = db.query(RennAnmeldung).filter(RennAnmeldung.user_id == user.id).count()
     db.close()
     return {
-        "message": f"Fahrer {fahrer.name} registriert!",
-        "startnummer": neuer_fahrer.startnummer,
-        "qr_code_url": f"{request.base_url}fahrer/{neuer_fahrer.id}/qrcode"
+        "id": user.id, "name": user.name, "email": user.email,
+        "rolle": user.rolle, "anmeldungen_count": anmeldungen_count,
     }
 
-@app.get("/fahrer")
-def alle_fahrer():
+# ── Rennen (Races) ────────────────────────────────────────────
+@app.get("/rennen")
+def alle_rennen():
     db = SessionLocal()
-    f = db.query(Fahrer).all()
+    rennen = db.query(Rennen).order_by(Rennen.datum.asc()).all()
+    result = []
+    for r in rennen:
+        count = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == r.id).count()
+        result.append(_rennen_dict(r, count))
     db.close()
-    return f
+    return result
 
-@app.get("/fahrer/{fahrer_id}/qrcode")
-def qrcode_generieren(fahrer_id: int):
+@app.post("/rennen")
+def rennen_erstellen(data: RennenSchema, admin: User = Depends(_require_admin)):
     db = SessionLocal()
-    fahrer = db.query(Fahrer).filter(Fahrer.id == fahrer_id).first()
+    r = Rennen(
+        name=data.name.strip(), datum=data.datum, uhrzeit=data.uhrzeit,
+        ort=data.ort.strip(), ort_link=data.ort_link or None,
+        beschreibung=data.beschreibung,
+        max_teilnehmer=data.max_teilnehmer, status="offen",
+        erstellt_am=datetime.now().strftime("%d.%m.%Y"),
+    )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    result = _rennen_dict(r, 0)
     db.close()
-    if not fahrer:
-        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
-    img = qrcode.make(f"Fahrer: {fahrer.name}\nStartnummer: {fahrer.startnummer}\nFahrzeug: {fahrer.fahrzeug}")
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    buf.seek(0)
-    return StreamingResponse(buf, media_type="image/png")
+    return result
 
-@app.post("/checkin/{fahrer_id}")
-def checkin(fahrer_id: int):
+@app.get("/rennen/{rennen_id}")
+def rennen_detail(rennen_id: int):
     db = SessionLocal()
-    fahrer = db.query(Fahrer).filter(Fahrer.id == fahrer_id).first()
-    if not fahrer:
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
         db.close()
-        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
-    if fahrer.eingecheckt:
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    count = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).count()
+    result = _rennen_dict(r, count)
+    db.close()
+    return result
+
+@app.put("/rennen/{rennen_id}")
+def rennen_bearbeiten(rennen_id: int, data: RennenSchema, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
         db.close()
-        raise HTTPException(status_code=400, detail="Fahrer bereits eingecheckt")
-    fahrer.eingecheckt = True
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    r.name = data.name.strip()
+    r.datum = data.datum
+    r.uhrzeit = data.uhrzeit
+    r.ort = data.ort.strip()
+    r.ort_link = data.ort_link or None
+    r.beschreibung = data.beschreibung
+    r.max_teilnehmer = data.max_teilnehmer
     db.commit()
     db.close()
-    return {"message": f"Fahrer {fahrer.name} eingecheckt!", "startnummer": fahrer.startnummer}
+    return {"message": "Rennen aktualisiert"}
 
-# ── Zeiten ───────────────────────────────────────────────────
-@app.post("/zeiten")
-def zeit_eintragen(z: ZeitCreate):
-    if not rennen_offen():
-        raise HTTPException(status_code=403, detail="Rennen ist bereits abgeschlossen")
+@app.delete("/rennen/{rennen_id}")
+def rennen_loeschen(rennen_id: int, admin: User = Depends(_require_admin)):
     db = SessionLocal()
-    fahrer = db.query(Fahrer).filter(Fahrer.id == z.fahrer_id).first()
-    if not fahrer:
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
         db.close()
-        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
-    neue_zeit = Zeit(fahrer_id=z.fahrer_id, rundenzeit=z.rundenzeit,
-                     strafzeit=z.strafzeit, gesamtzeit=z.rundenzeit + z.strafzeit)
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).delete()
+    db.query(Zeit).filter(Zeit.rennen_id == rennen_id).delete()
+    db.query(Strafzeit).filter(Strafzeit.rennen_id == rennen_id).delete()
+    db.delete(r)
+    db.commit()
+    db.close()
+    return {"message": "Rennen gelöscht"}
+
+@app.post("/rennen/{rennen_id}/anmelden")
+def fuer_rennen_anmelden(rennen_id: int, data: RennAnmeldungSchema, user: User = Depends(_require_auth)):
+    if not data.einwilligung:
+        raise HTTPException(status_code=400, detail="DSGVO-Einwilligung erforderlich")
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    if r.status == "abgeschlossen":
+        db.close()
+        raise HTTPException(status_code=403, detail="Rennen ist abgeschlossen")
+    if db.query(RennAnmeldung).filter(
+        RennAnmeldung.user_id == user.id,
+        RennAnmeldung.rennen_id == rennen_id
+    ).first():
+        db.close()
+        raise HTTPException(status_code=400, detail="Bereits für dieses Rennen angemeldet")
+    count = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).count()
+    if r.max_teilnehmer and count >= r.max_teilnehmer:
+        db.close()
+        raise HTTPException(status_code=400, detail="Rennen ist voll")
+    startnummer = count + 1
+    a = RennAnmeldung(
+        user_id=user.id, rennen_id=rennen_id,
+        fahrzeug=data.fahrzeug.strip(), einwilligung=True,
+        startnummer=startnummer, eingecheckt=False,
+    )
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    nr = a.startnummer
+    rname = r.name
+    uid = user.id
+    db.close()
+    return {
+        "message": f"Erfolgreich für '{rname}' angemeldet!",
+        "startnummer": nr,
+        "qr_code_url": f"/fahrer/{uid}/qrcode",
+    }
+
+@app.delete("/rennen/{rennen_id}/abmelden")
+def von_rennen_abmelden(rennen_id: int, user: User = Depends(_require_auth)):
+    db = SessionLocal()
+    a = db.query(RennAnmeldung).filter(
+        RennAnmeldung.user_id == user.id,
+        RennAnmeldung.rennen_id == rennen_id,
+    ).first()
+    if not a:
+        db.close()
+        raise HTTPException(status_code=404, detail="Nicht für dieses Rennen angemeldet")
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if r and r.status != "offen":
+        db.close()
+        raise HTTPException(status_code=403, detail="Abmeldung nicht mehr möglich")
+    db.delete(a)
+    db.commit()
+    db.close()
+    return {"message": "Erfolgreich abgemeldet"}
+
+@app.get("/rennen/{rennen_id}/teilnehmer")
+def rennen_teilnehmer(rennen_id: int):
+    db = SessionLocal()
+    anmeldungen = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).all()
+    users = {u.id: u for u in db.query(User).all()}
+    db.close()
+    result = []
+    for a in anmeldungen:
+        u = users.get(a.user_id)
+        if u:
+            result.append({
+                "id": a.user_id, "name": u.name, "fahrzeug": a.fahrzeug,
+                "startnummer": a.startnummer, "eingecheckt": a.eingecheckt,
+            })
+    result.sort(key=lambda x: x["startnummer"])
+    return result
+
+@app.get("/rennen/{rennen_id}/leaderboard")
+def rennen_leaderboard(rennen_id: int):
+    db = SessionLocal()
+    anmeldungen = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).all()
+    users = {u.id: u for u in db.query(User).all()}
+    result = []
+    for a in anmeldungen:
+        u = users.get(a.user_id)
+        if not u:
+            continue
+        zeiten = db.query(Zeit).filter(Zeit.fahrer_id == a.user_id, Zeit.rennen_id == rennen_id).all()
+        strafen = db.query(Strafzeit).filter(Strafzeit.fahrer_id == a.user_id, Strafzeit.rennen_id == rennen_id).all()
+        beste_runde = min((z.rundenzeit for z in zeiten), default=None)
+        gesamt_strafe = sum(s.strafzeit for s in strafen)
+        beste_gesamt = (beste_runde + gesamt_strafe) if beste_runde is not None else None
+        result.append({
+            "id": a.user_id, "startnummer": a.startnummer, "name": u.name,
+            "fahrzeug": a.fahrzeug, "eingecheckt": a.eingecheckt,
+            "beste_rundenzeit": beste_runde, "gesamt_strafzeit": gesamt_strafe,
+            "beste_gesamtzeit": beste_gesamt, "anzahl_laeufe": len(zeiten),
+        })
+    db.close()
+    result.sort(key=lambda x: (x["beste_gesamtzeit"] is None, x["beste_gesamtzeit"]))
+    return result
+
+@app.post("/rennen/{rennen_id}/starten")
+def rennen_starten(rennen_id: int, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    r.status = "laufend"
+    rname = r.name
+    db.commit()
+    db.close()
+    return {"message": f"Rennen '{rname}' gestartet"}
+
+@app.post("/rennen/{rennen_id}/abschliessen")
+def rennen_per_id_abschliessen(rennen_id: int, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    r.status = "abgeschlossen"
+    rname = r.name
+    db.commit()
+    db.close()
+    return {"message": f"Rennen '{rname}' abgeschlossen"}
+
+@app.post("/rennen/{rennen_id}/reset")
+def rennen_per_id_reset(rennen_id: int, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    r.status = "offen"
+    rname = r.name
+    db.commit()
+    db.close()
+    return {"message": f"Rennen '{rname}' wieder geöffnet"}
+
+# ── Profil ────────────────────────────────────────────────────
+@app.get("/profil/anmeldungen")
+def meine_anmeldungen(user: User = Depends(_require_auth)):
+    db = SessionLocal()
+    anmeldungen = db.query(RennAnmeldung).filter(RennAnmeldung.user_id == user.id).all()
+    rennen_map = {r.id: r for r in db.query(Rennen).all()}
+    result = []
+    for a in anmeldungen:
+        r = rennen_map.get(a.rennen_id) if a.rennen_id else None
+        zeiten = (
+            db.query(Zeit).filter(Zeit.fahrer_id == user.id, Zeit.rennen_id == a.rennen_id).all()
+            if a.rennen_id else []
+        )
+        beste = min((z.rundenzeit for z in zeiten), default=None)
+        result.append({
+            "anmeldung_id": a.id, "rennen_id": a.rennen_id,
+            "rennen_name": r.name if r else "Unbekanntes Rennen",
+            "rennen_datum": r.datum if r else None,
+            "rennen_uhrzeit": r.uhrzeit if r else None,
+            "rennen_ort": r.ort if r else None,
+            "rennen_status": r.status if r else "unbekannt",
+            "fahrzeug": a.fahrzeug, "startnummer": a.startnummer,
+            "eingecheckt": a.eingecheckt, "beste_zeit": beste,
+            "anzahl_laeufe": len(zeiten),
+        })
+    db.close()
+    result.sort(key=lambda x: (x["rennen_datum"] or ""), reverse=True)
+    return result
+
+# ── Admin: Zeiten / Strafzeiten ───────────────────────────────
+@app.post("/zeiten")
+def zeit_eintragen(z: ZeitSchema, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == z.rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    if r.status == "abgeschlossen":
+        db.close()
+        raise HTTPException(status_code=403, detail="Rennen ist abgeschlossen")
+    if not db.query(RennAnmeldung).filter(
+        RennAnmeldung.user_id == z.fahrer_id,
+        RennAnmeldung.rennen_id == z.rennen_id,
+    ).first():
+        db.close()
+        raise HTTPException(status_code=404, detail="Fahrer nicht für dieses Rennen angemeldet")
+    neue_zeit = Zeit(
+        fahrer_id=z.fahrer_id, rennen_id=z.rennen_id,
+        rundenzeit=z.rundenzeit, strafzeit=z.strafzeit,
+        gesamtzeit=z.rundenzeit + z.strafzeit,
+    )
     db.add(neue_zeit)
     db.commit()
+    gesamtzeit = neue_zeit.gesamtzeit
     db.close()
-    return {"message": "Zeit eingetragen", "gesamtzeit": neue_zeit.gesamtzeit}
+    return {"message": "Zeit eingetragen", "gesamtzeit": gesamtzeit}
+
+@app.post("/strafzeiten")
+def strafzeit_hinzufuegen(s: StrafzeitSchema, admin: User = Depends(_require_admin)):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == s.rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    if r.status == "abgeschlossen":
+        db.close()
+        raise HTTPException(status_code=403, detail="Rennen ist abgeschlossen")
+    u = db.query(User).filter(User.id == s.fahrer_id).first()
+    name = u.name if u else str(s.fahrer_id)
+    db.add(Strafzeit(fahrer_id=s.fahrer_id, rennen_id=s.rennen_id, strafzeit=s.strafzeit, grund=s.grund))
+    db.commit()
+    db.close()
+    return {"message": f"Strafzeit +{s.strafzeit}s für {name}", "grund": s.grund}
 
 @app.get("/zeiten/{fahrer_id}")
 def zeiten_von_fahrer(fahrer_id: int):
@@ -204,194 +559,247 @@ def zeiten_von_fahrer(fahrer_id: int):
     db.close()
     return z
 
-# ── Strafzeiten ──────────────────────────────────────────────
-@app.post("/strafzeiten")
-def strafzeit_hinzufuegen(s: StrafzeitCreate):
-    if not rennen_offen():
-        raise HTTPException(status_code=403, detail="Rennen ist bereits abgeschlossen")
+# ── Check-in ──────────────────────────────────────────────────
+@app.post("/checkin/{user_id}")
+def checkin(user_id: int):
     db = SessionLocal()
-    fahrer = db.query(Fahrer).filter(Fahrer.id == s.fahrer_id).first()
-    if not fahrer:
+    # Check-in für das zuletzt aktive Rennen des Fahrers
+    a = (
+        db.query(RennAnmeldung)
+        .filter(RennAnmeldung.user_id == user_id)
+        .order_by(RennAnmeldung.id.desc())
+        .first()
+    )
+    if not a:
         db.close()
-        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
-    db.add(Strafzeit(fahrer_id=s.fahrer_id, strafzeit=s.strafzeit, grund=s.grund))
-    letzte = db.query(Zeit).filter(Zeit.fahrer_id == s.fahrer_id).order_by(Zeit.id.desc()).first()
-    if letzte:
-        letzte.strafzeit += s.strafzeit
-        letzte.gesamtzeit += s.strafzeit
+        raise HTTPException(status_code=404, detail="Fahrer nicht angemeldet")
+    if a.eingecheckt:
+        db.close()
+        raise HTTPException(status_code=400, detail="Fahrer bereits eingecheckt")
+    a.eingecheckt = True
     db.commit()
+    u = db.query(User).filter(User.id == user_id).first()
+    uname = u.name if u else str(user_id)
+    snr = a.startnummer
     db.close()
-    return {"message": f"Strafzeit von {s.strafzeit}s für {fahrer.name} eingetragen", "grund": s.grund}
+    return {"message": f"{uname} eingecheckt!", "startnummer": snr}
 
-# ── Leaderboard ──────────────────────────────────────────────
-@app.get("/leaderboard")
-def leaderboard():
+@app.post("/rennen/{rennen_id}/checkin/{user_id}")
+def checkin_fuer_rennen(rennen_id: int, user_id: int, admin: User = Depends(_require_admin)):
     db = SessionLocal()
-    ergebnis = []
-    for fahrer in db.query(Fahrer).all():
-        zeiten = db.query(Zeit).filter(Zeit.fahrer_id == fahrer.id).all()
-        strafen = db.query(Strafzeit).filter(Strafzeit.fahrer_id == fahrer.id).all()
-        ergebnis.append({
-            "startnummer": fahrer.startnummer, "name": fahrer.name,
-            "fahrzeug": fahrer.fahrzeug, "eingecheckt": fahrer.eingecheckt,
-            "beste_gesamtzeit": min((z.gesamtzeit for z in zeiten), default=None),
-            "gesamt_strafzeit": sum(s.strafzeit for s in strafen),
-            "anzahl_laeufe": len(zeiten)
+    a = db.query(RennAnmeldung).filter(
+        RennAnmeldung.user_id == user_id,
+        RennAnmeldung.rennen_id == rennen_id,
+    ).first()
+    if not a:
+        db.close()
+        raise HTTPException(status_code=404, detail="Fahrer nicht für dieses Rennen angemeldet")
+    a.eingecheckt = True
+    db.commit()
+    u = db.query(User).filter(User.id == user_id).first()
+    uname = u.name if u else str(user_id)
+    snr = a.startnummer
+    db.close()
+    return {"message": f"{uname} eingecheckt!", "startnummer": snr}
+
+# ── Fahrer (allgemein) ────────────────────────────────────────
+@app.get("/fahrer")
+def alle_fahrer():
+    db = SessionLocal()
+    anmeldungen = db.query(RennAnmeldung).all()
+    users = {u.id: u for u in db.query(User).all()}
+    db.close()
+    result = []
+    for a in anmeldungen:
+        u = users.get(a.user_id)
+        if u:
+            result.append({
+                "id": a.user_id, "name": u.name, "email": u.email,
+                "fahrzeug": a.fahrzeug, "startnummer": a.startnummer,
+                "eingecheckt": a.eingecheckt, "rennen_id": a.rennen_id,
+            })
+    result.sort(key=lambda x: x["startnummer"])
+    return result
+
+@app.get("/fahrer/{user_id}/qrcode")
+def qrcode_generieren(user_id: int):
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == user_id).first()
+    anmeldung = db.query(RennAnmeldung).filter(RennAnmeldung.user_id == user_id).order_by(RennAnmeldung.id.desc()).first()
+    db.close()
+    if not user or not anmeldung:
+        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
+    qr_data = f"CHECKIN:{user_id}"
+    img = qrcode.make(qr_data)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")
+
+# ── Netzwerk-Info ─────────────────────────────────────────────
+@app.get("/netzwerk-info")
+def netzwerk_info():
+    ip = _local_ip()
+    return {
+        "local_ip": ip,
+        "portal_url": f"http://{ip}:8000/app/index.html",
+        "leaderboard_url": f"http://{ip}:8000/app/leaderboard.html",
+        "simulator_url": f"http://{ip}:8000/simulator",
+    }
+
+# ── Ergebnisse PDF (pro Rennen) ───────────────────────────────
+@app.get("/rennen/{rennen_id}/ergebnisse/pdf", response_class=HTMLResponse)
+def ergebnisse_pdf(rennen_id: int):
+    db = SessionLocal()
+    r = db.query(Rennen).filter(Rennen.id == rennen_id).first()
+    if not r:
+        db.close()
+        raise HTTPException(status_code=404, detail="Rennen nicht gefunden")
+    anmeldungen = db.query(RennAnmeldung).filter(RennAnmeldung.rennen_id == rennen_id).all()
+    users = {u.id: u for u in db.query(User).all()}
+    result = []
+    for a in anmeldungen:
+        u = users.get(a.user_id)
+        if not u:
+            continue
+        zeiten = db.query(Zeit).filter(Zeit.fahrer_id == a.user_id, Zeit.rennen_id == rennen_id).all()
+        strafen = db.query(Strafzeit).filter(Strafzeit.fahrer_id == a.user_id, Strafzeit.rennen_id == rennen_id).all()
+        beste_runde = min((z.rundenzeit for z in zeiten), default=None)
+        gesamt_strafe = sum(s.strafzeit for s in strafen)
+        beste_gesamt = (beste_runde + gesamt_strafe) if beste_runde is not None else None
+        result.append({
+            "name": u.name, "fahrzeug": a.fahrzeug, "startnummer": a.startnummer,
+            "anzahl_laeufe": len(zeiten), "beste_runde": beste_runde,
+            "gesamt_strafe": gesamt_strafe, "beste_gesamt": beste_gesamt,
         })
     db.close()
-    ergebnis.sort(key=lambda x: (x["beste_gesamtzeit"] is None, x["beste_gesamtzeit"]))
-    return ergebnis
+    result.sort(key=lambda x: (x["beste_gesamt"] is None, x["beste_gesamt"]))
 
-# ── Rennen ───────────────────────────────────────────────────
-@app.post("/rennen/abschliessen")
-def rennen_abschliessen():
-    if not rennen_offen():
-        raise HTTPException(status_code=400, detail="Rennen bereits abgeschlossen")
-    db = SessionLocal()
-    s = db.query(RennStatus).first()
-    s.abgeschlossen = True
-    s.abgeschlossen_um = datetime.now().strftime("%d.%m.%Y um %H:%M Uhr")
-    db.commit()
-    db.close()
-    return {"message": "Rennen erfolgreich abgeschlossen!"}
+    def fmt(s):
+        if s is None:
+            return "—"
+        m = int(s // 60)
+        r2 = s % 60
+        return f"{m}:{r2:05.2f} min" if m > 0 else f"{r2:.2f} s"
 
-@app.post("/rennen/reset")
-def rennen_reset():
-    db = SessionLocal()
-    s = db.query(RennStatus).first()
-    s.abgeschlossen = False
-    s.abgeschlossen_um = None
-    db.commit()
-    db.close()
-    return {"message": "Rennen wieder geöffnet"}
+    plaetze = ["🥇", "🥈", "🥉"]
+    zeilen = ""
+    for i, f in enumerate(result):
+        platz = plaetze[i] if i < 3 else f"{i+1}."
+        bg = "#FFF8E1" if i == 0 else "#F5F5F5" if i == 1 else "#FFF3E0" if i == 2 else "white"
+        strafe_str = f'+{f["gesamt_strafe"]}s' if f["gesamt_strafe"] > 0 else "—"
+        zeilen += (
+            f'<tr style="background:{bg}">'
+            f'<td style="text-align:center;font-size:20px">{platz}</td>'
+            f'<td><strong>{f["name"]}</strong></td>'
+            f'<td>{f["fahrzeug"]}</td>'
+            f'<td style="text-align:center">#{f["startnummer"]}</td>'
+            f'<td style="text-align:center">{f["anzahl_laeufe"]}</td>'
+            f'<td style="text-align:center;color:#C62828;font-weight:700">{strafe_str}</td>'
+            f'<td style="text-align:center;font-family:monospace;font-weight:700;color:#C8A415">{fmt(f["beste_runde"])}</td>'
+            f'<td style="text-align:center;font-family:monospace;font-weight:700">{fmt(f["beste_gesamt"])}</td>'
+            f'</tr>'
+        )
+    status_str = f"Abgeschlossen" if r.status == "abgeschlossen" else "Rennen läuft noch"
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Ergebnisse — {r.name}</title>
+<style>
+  body{{font-family:'Segoe UI',sans-serif;padding:40px;color:#1E1E1E;background:#fff}}
+  h1{{font-size:26px;margin-bottom:4px}} .sub{{color:#888;font-size:13px;margin-bottom:28px}}
+  table{{width:100%;border-collapse:collapse}}
+  th{{background:#1E1E1E;color:white;padding:11px 14px;font-size:12px;text-align:left}}
+  td{{padding:11px 14px;border-bottom:1px solid #F0F0F0;font-size:13px}}
+  @media print{{.no-print{{display:none}}}}
+</style></head>
+<body>
+<h1>🏁 {r.name}</h1>
+<p class="sub">{r.datum} · {r.ort} &nbsp;|&nbsp; {status_str} &nbsp;|&nbsp; {len(result)} Fahrer</p>
+<button class="no-print" onclick="window.print()"
+  style="background:#1E1E1E;color:white;border:none;padding:10px 22px;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:22px">
+  🖨️ Drucken / Als PDF speichern
+</button>
+<table>
+  <thead><tr>
+    <th>Platz</th><th>Name</th><th>Fahrzeug</th>
+    <th>Nr.</th><th>Läufe</th><th>Strafzeit</th>
+    <th>Beste Runde</th><th>Beste Gesamt</th>
+  </tr></thead>
+  <tbody>{zeilen}</tbody>
+</table>
+</body></html>""")
 
-# ── KI-KAMERA MEHRTOR-SYSTEM ─────────────────────────────────
+# ── Kamera-System ─────────────────────────────────────────────
 @app.post("/kamera/tor")
-def tor_signal(signal: TorSignalCreate):
-    """
-    Empfängt ein Signal von einem Tor.
-    - Tor 1 = Starttor → startet neuen Lauf
-    - Tore 2 bis N-1 = Zwischentore → Zwischenzeit
-    - Letztes Tor = Zieltor → Gesamtzeit berechnen und speichern
-    """
-    if not rennen_offen():
-        raise HTTPException(status_code=403, detail="Rennen ist bereits abgeschlossen")
+def tor_signal(signal: TorSignalSchema):
     db = SessionLocal()
-    fahrer = db.query(Fahrer).filter(Fahrer.id == signal.fahrer_id).first()
-    if not fahrer:
+    anmeldung = db.query(RennAnmeldung).filter(RennAnmeldung.user_id == signal.fahrer_id).order_by(RennAnmeldung.id.desc()).first()
+    if not anmeldung:
         db.close()
-        raise HTTPException(status_code=404, detail="Fahrer nicht gefunden")
+        raise HTTPException(status_code=404, detail="Fahrer nicht angemeldet")
+    user = db.query(User).filter(User.id == signal.fahrer_id).first()
+    user_name = user.name if user else str(signal.fahrer_id)
+    rennen_id = anmeldung.rennen_id
 
-    # Aktuellen Lauf bestimmen
     letzter_lauf = db.query(TorSignal).filter(
         TorSignal.fahrer_id == signal.fahrer_id
     ).order_by(TorSignal.lauf_id.desc()).first()
 
     if signal.tor_nr == 1:
-        # Neuer Lauf beginnt
         lauf_id = (letzter_lauf.lauf_id + 1) if letzter_lauf else 1
         db.add(TorSignal(fahrer_id=signal.fahrer_id, tor_nr=1,
                          zeitstempel=signal.zeitstempel, lauf_id=lauf_id))
         db.commit()
         db.close()
-        return {
-            "status": "start",
-            "message": f"🚦 Tor 1 — START für {fahrer.name}! Lauf {lauf_id}",
-            "lauf_id": lauf_id,
-            "tor_nr": 1,
-            "naechstes_tor": 2
-        }
+        return {"status": "start", "message": f"START {user_name} — Lauf {lauf_id}",
+                "lauf_id": lauf_id, "naechstes_tor": 2}
 
-    # Welcher Lauf läuft gerade?
     lauf_id = letzter_lauf.lauf_id if letzter_lauf else None
     if not lauf_id:
         db.close()
-        raise HTTPException(status_code=400, detail="Kein aktiver Lauf — bitte zuerst Tor 1 passieren")
+        raise HTTPException(status_code=400, detail="Kein aktiver Lauf — Tor 1 zuerst")
 
-    # Startzeit dieses Laufs
     start_signal = db.query(TorSignal).filter(
         TorSignal.fahrer_id == signal.fahrer_id,
         TorSignal.lauf_id == lauf_id,
-        TorSignal.tor_nr == 1
+        TorSignal.tor_nr == 1,
     ).first()
     if not start_signal:
         db.close()
-        raise HTTPException(status_code=400, detail="Startzeit nicht gefunden")
+        raise HTTPException(status_code=400, detail="Startzeit fehlt")
 
-    # Zwischenzeit berechnen
     zwischenzeit = round(signal.zeitstempel - start_signal.zeitstempel, 3)
-
-    # Signal speichern
     db.add(TorSignal(fahrer_id=signal.fahrer_id, tor_nr=signal.tor_nr,
                      zeitstempel=signal.zeitstempel, lauf_id=lauf_id))
 
-    # Letztes Tor → Gesamtzeit speichern
     if signal.tor_nr >= ANZAHL_TORE:
-        neue_zeit = Zeit(
-            fahrer_id=signal.fahrer_id,
-            rundenzeit=zwischenzeit,
-            strafzeit=0.0,
-            gesamtzeit=zwischenzeit
-        )
-        db.add(neue_zeit)
+        db.add(Zeit(fahrer_id=signal.fahrer_id, rennen_id=rennen_id,
+                    rundenzeit=zwischenzeit, strafzeit=0.0, gesamtzeit=zwischenzeit))
         db.commit()
         db.close()
-        return {
-            "status": "ziel",
-            "message": f"🏁 ZIEL! Gesamtzeit: {zwischenzeit:.3f}s",
-            "gesamtzeit": zwischenzeit,
-            "zwischenzeit": zwischenzeit,
-            "tor_nr": signal.tor_nr,
-            "lauf_id": lauf_id
-        }
+        return {"status": "ziel", "message": f"ZIEL! {zwischenzeit:.3f}s",
+                "gesamtzeit": zwischenzeit, "zwischenzeit": zwischenzeit,
+                "tor_nr": signal.tor_nr, "lauf_id": lauf_id}
 
-    # Zwischentor
     db.commit()
     db.close()
-    return {
-        "status": "zwischen",
-        "message": f"✓ Tor {signal.tor_nr} passiert — Zwischenzeit: {zwischenzeit:.3f}s",
-        "zwischenzeit": zwischenzeit,
-        "tor_nr": signal.tor_nr,
-        "naechstes_tor": signal.tor_nr + 1,
-        "lauf_id": lauf_id
-    }
+    return {"status": "zwischen",
+            "message": f"Tor {signal.tor_nr} — {zwischenzeit:.3f}s",
+            "zwischenzeit": zwischenzeit, "tor_nr": signal.tor_nr,
+            "naechstes_tor": signal.tor_nr + 1, "lauf_id": lauf_id}
 
-@app.get("/kamera/lauf/{fahrer_id}")
-def aktueller_lauf(fahrer_id: int):
-    """Zeigt den aktuellen Lauf-Status eines Fahrers"""
-    db = SessionLocal()
-    signale = db.query(TorSignal).filter(
-        TorSignal.fahrer_id == fahrer_id
-    ).order_by(TorSignal.lauf_id.desc(), TorSignal.tor_nr.asc()).all()
-    db.close()
-    if not signale:
-        return {"lauf_id": None, "tore": [], "naechstes_tor": 1}
-    lauf_id = signale[0].lauf_id
-    tore_dieses_laufs = [s for s in signale if s.lauf_id == lauf_id]
-    passierte_tore = [s.tor_nr for s in tore_dieses_laufs]
-    naechstes = max(passierte_tore) + 1 if passierte_tore else 1
-    return {
-        "lauf_id": lauf_id,
-        "tore": passierte_tore,
-        "naechstes_tor": naechstes if naechstes <= ANZAHL_TORE else None,
-        "fertig": naechstes > ANZAHL_TORE
-    }
+@app.get("/kamera/config")
+def kamera_config():
+    return {"anzahl_tore": ANZAHL_TORE}
 
 @app.delete("/kamera/lauf/{fahrer_id}/reset")
 def lauf_reset(fahrer_id: int):
-    """Aktuellen Lauf abbrechen"""
     db = SessionLocal()
     db.query(TorSignal).filter(TorSignal.fahrer_id == fahrer_id).delete()
     db.commit()
     db.close()
     return {"message": "Lauf zurückgesetzt"}
 
-@app.get("/kamera/config")
-def kamera_config():
-    return {"anzahl_tore": ANZAHL_TORE}
-
-# ── KAMERA SIMULATOR (direkt als HTML) ───────────────────────
+# ── Kamera-Simulator ──────────────────────────────────────────
 @app.get("/simulator", response_class=HTMLResponse)
 def simulator():
     html = f"""<!DOCTYPE html>
@@ -399,360 +807,155 @@ def simulator():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KI-Kamera Simulator</title>
+<title>KI-Kamera Simulator — PMK RC-Rally</title>
 <style>
   *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{font-family:'Segoe UI',Arial,sans-serif;background:#1a1a2e;min-height:100vh;padding:20px;color:white}}
-  .header{{max-width:650px;margin:0 auto 20px;text-align:center}}
-  .header h1{{font-size:22px}}
-  .header p{{font-size:13px;color:#888;margin-top:4px}}
-  .badge{{display:inline-block;background:#C62828;color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;margin-bottom:10px;animation:blink 1.5s infinite}}
+  body{{font-family:'Segoe UI',sans-serif;background:#0d0d1a;min-height:100vh;padding:20px;color:white}}
+  .header{{max-width:660px;margin:0 auto 20px;text-align:center}}
+  .badge{{display:inline-block;background:#C62828;color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;margin-bottom:8px;animation:blink 1.5s infinite}}
   @keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:0.4}}}}
-  .card{{background:#16213e;border-radius:12px;padding:20px;max-width:650px;margin:0 auto 16px;border:1px solid #0f3460}}
-  .card h2{{font-size:14px;font-weight:700;color:#C8A415;margin-bottom:14px}}
-  select{{width:100%;padding:10px 12px;background:#0f3460;border:1.5px solid #1a4a8a;border-radius:8px;font-size:14px;color:white;outline:none}}
-  select:focus{{border-color:#C8A415}}
-  .timer{{text-align:center;padding:20px;background:#0f1b2d;border-radius:10px;margin:14px 0;border:1px solid #1a4a8a}}
+  h1{{font-size:20px}}
+  .card{{background:#16213e;border-radius:12px;padding:20px;max-width:660px;margin:0 auto 14px;border:1px solid #0f3460}}
+  .card h2{{font-size:13px;font-weight:700;color:#C8A415;margin-bottom:14px}}
+  select{{width:100%;padding:9px 12px;background:#0f3460;border:1.5px solid #1a4a8a;border-radius:8px;font-size:13px;color:white;outline:none}}
+  .timer{{text-align:center;padding:18px;background:#0a1628;border-radius:10px;margin:12px 0;border:1px solid #1a4a8a}}
   .timer-label{{font-size:12px;color:#888;margin-bottom:6px}}
-  .timer-zahl{{font-size:48px;font-weight:800;color:#C8A415;font-family:'Courier New',monospace}}
-  .timer-zahl.laueft{{animation:pulse 1s infinite}}
-  @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:0.7}}}}
-  .tore-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}}
-  .tor-btn{{padding:14px 8px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;background:#0f3460;color:#888;border:1.5px solid #1a4a8a}}
-  .tor-btn.aktiv{{background:#2E7D32;color:white;border-color:#2E7D32;animation:glow 1s infinite alternate}}
-  @keyframes glow{{from{{box-shadow:0 0 5px #2E7D32}}to{{box-shadow:0 0 20px #2E7D32}}}}
-  .tor-btn.passiert{{background:#1a4a8a;color:#69F0AE;border-color:#1a4a8a}}
-  .tor-btn.ziel-btn{{background:#C62828;color:white;border-color:#C62828}}
-  .tor-btn.ziel-btn.aktiv{{animation:glow-red 1s infinite alternate}}
-  @keyframes glow-red{{from{{box-shadow:0 0 5px #C62828}}to{{box-shadow:0 0 20px #C62828}}}}
-  .tor-btn:disabled{{opacity:0.3;cursor:not-allowed;animation:none}}
-  .status{{padding:12px 16px;border-radius:8px;margin-top:12px;font-size:14px;font-weight:600;text-align:center;display:none}}
-  .status.ok{{background:#1B5E20;color:#69F0AE}}
-  .status.err{{background:#4a0000;color:#FF5252}}
-  .status.info{{background:#0d2b5e;color:#82B1FF}}
-  .status.zwischen{{background:#1a3060;color:#FFD740}}
-  .zeiten-box{{font-size:13px}}
-  .zeit-row{{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a3060;color:#888}}
-  .zeit-row:last-child{{border:none}}
+  .timer-zahl{{font-size:46px;font-weight:800;color:#C8A415;font-family:'Courier New',monospace}}
+  .timer-zahl.run{{animation:pulse 1s infinite}} @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:0.7}}}}
+  .tore-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}}
+  .tor-btn{{padding:12px 6px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:#0f3460;color:#888;border:1.5px solid #1a4a8a;white-space:pre;transition:all 0.15s}}
+  .tor-btn.aktiv{{background:#2E7D32;color:white;border-color:#2E7D32}}
+  .tor-btn.passiert{{background:#1a4a8a;color:#69F0AE}}
+  .tor-btn.ziel{{background:#C62828;border-color:#C62828;color:white}}
+  .tor-btn:disabled{{opacity:0.3;cursor:not-allowed}}
+  .status{{padding:11px;border-radius:8px;margin-top:10px;font-size:13px;font-weight:600;text-align:center;display:none}}
+  .status.ok{{background:#1B5E20;color:#69F0AE}} .status.err{{background:#4a0000;color:#FF5252}}
+  .status.info{{background:#0d2b5e;color:#82B1FF}} .status.zw{{background:#1a3060;color:#FFD740}}
+  .zeit-row{{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1a3060;font-size:12px;color:#888}}
   .zeit-val{{color:#69F0AE;font-family:monospace;font-weight:700}}
-  .beste{{color:#C8A415;font-weight:700;margin-top:10px;text-align:right;font-size:14px}}
-  .zwischen-list{{margin-top:10px}}
-  .zwischen-item{{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#555;border-bottom:1px solid #111}}
-  .zwischen-item.aktiv{{color:#FFD740}}
-  .reset-btn{{width:100%;padding:8px;background:none;border:1px solid #4a0000;color:#FF5252;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}}
-  .debug{{background:#0a0a1a;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#555;max-height:150px;overflow-y:auto;margin-top:10px}}
-  .debug .ok{{color:#69F0AE}}.debug .err{{color:#FF5252}}.debug .info{{color:#82B1FF}}.debug .w{{color:#FFD740}}
-  .nav{{text-align:center;margin-top:16px;font-size:13px;color:#555}}
-  .nav a{{color:#C8A415;text-decoration:none;font-weight:600;margin:0 8px}}
+  .log{{background:#0a0a1a;border-radius:8px;padding:10px;font-family:monospace;font-size:10px;color:#555;max-height:120px;overflow-y:auto}}
+  .log .ok{{color:#69F0AE}} .log .err{{color:#FF5252}} .log .info{{color:#82B1FF}}
+  .nav{{text-align:center;margin-top:14px;font-size:12px}}
+  .nav a{{color:#C8A415;text-decoration:none;margin:0 8px;font-weight:600}}
 </style>
 </head>
 <body>
 <div class="header">
   <div class="badge">● KI-KAMERA SIMULATOR</div>
-  <h1>📷 Mehrtor-Kamera-Simulator</h1>
-  <p>Simuliert {ANZAHL_TORE} KI-Kameras entlang der Strecke</p>
+  <h1>Mehrtor-Simulator — {ANZAHL_TORE} Tore</h1>
 </div>
 
 <div class="card">
-  <h2>🏎️ Fahrer auswählen</h2>
-  <select id="fahrerSelect" onchange="fahrerGewaehlt()">
-    <option value="">-- Wird geladen... --</option>
-  </select>
+  <h2>🏎️ Fahrer</h2>
+  <select id="sel" onchange="onFahrer()"><option value="">— wird geladen —</option></select>
 </div>
 
 <div class="card">
-  <h2>📡 Tor-Signale</h2>
-  <div class="timer">
-    <div class="timer-label" id="timerLabel">Fahrer auswählen um zu starten</div>
-    <div class="timer-zahl" id="timerZahl">00.000</div>
-  </div>
-
-  <div class="tore-grid" id="toreGrid"></div>
-
-  <div class="zwischen-list" id="zwischenList"></div>
-  <div class="status" id="statusBox"></div>
-  <button class="reset-btn" id="resetBtn" onclick="laufReset()" style="display:none">
-    ✕ Lauf abbrechen / zurücksetzen
-  </button>
+  <h2>📡 Tore</h2>
+  <div class="timer"><div class="timer-label" id="tlabel">Fahrer wählen</div>
+    <div class="timer-zahl" id="tzahl">00.000</div></div>
+  <div class="tore-grid" id="grid"></div>
+  <div id="zwischen"></div>
+  <div class="status" id="st"></div>
+  <button id="resetBtn" onclick="doReset()" style="display:none;width:100%;margin-top:8px;padding:7px;background:none;border:1px solid #4a0000;color:#FF5252;border-radius:6px;cursor:pointer;font-size:12px">✕ Lauf abbrechen</button>
 </div>
 
 <div class="card">
-  <h2>🏁 Gespeicherte Zeiten</h2>
-  <div class="zeiten-box" id="zeitenBox">
-    <p style="color:#555;font-size:13px">Noch keine Zeiten.</p>
-  </div>
-  <button onclick="zeitenLaden()" style="width:100%;margin-top:12px;padding:8px;background:none;border:1px solid #1a4a8a;color:#888;border-radius:6px;cursor:pointer;font-size:12px">
-    ↻ Aktualisieren
-  </button>
+  <h2>🏁 Zeiten</h2>
+  <div id="zeiten"><p style="color:#555;font-size:12px">Keine Zeiten.</p></div>
 </div>
 
 <div class="card">
   <h2>📋 Log</h2>
-  <div class="debug" id="debugLog"><div class="info">System bereit...</div></div>
+  <div class="log" id="log"><div class="info">Bereit.</div></div>
 </div>
 
 <div class="nav">
-  <a href="/app/index.html">📝 Registrierung</a>
-  <a href="/app/leaderboard.html">📊 Leaderboard</a>
-  <a href="/app/dashboard.html">⚙️ Dashboard</a>
+  <a href="/app/index.html">Portal</a>
+  <a href="/app/leaderboard.html">Leaderboard</a>
+  <a href="/app/admin.html">Admin</a>
 </div>
 
 <script>
 const API = '';
 const TORE = {ANZAHL_TORE};
-let aktiverFahrer = null;
-let naechstesTor = 1;
-let startTs = null;
-let timerInt = null;
-let zwischenzeiten = [];
+let fahrer = null, naechstes = 1, startTs = null, tint = null, zw = [];
 
-function log(text, typ='info') {{
-  const el = document.getElementById('debugLog');
-  const now = new Date().toTimeString().slice(0,8);
-  el.innerHTML = `<div class="${{typ}}">[${{now}}] ${{text}}</div>` + el.innerHTML;
-}}
+function lg(t,c='info'){{const el=document.getElementById('log'),d=new Date().toTimeString().slice(0,8);el.innerHTML=`<div class="${{c}}">[${{d}}] ${{t}}</div>`+el.innerHTML}}
+function st(t,c){{const e=document.getElementById('st');e.textContent=t;e.className='status '+c;e.style.display='block'}}
+function fmt(s){{return s.toFixed(3).padStart(6,'0')}}
 
-function statusZeigen(text, typ) {{
-  const el = document.getElementById('statusBox');
-  el.textContent = text;
-  el.className = 'status ' + typ;
-  el.style.display = 'block';
-}}
-
-function toreAufbauen() {{
-  const grid = document.getElementById('toreGrid');
-  grid.innerHTML = '';
-  for (let i = 1; i <= TORE; i++) {{
-    const btn = document.createElement('button');
-    btn.className = 'tor-btn' + (i === TORE ? ' ziel-btn' : '');
-    btn.id = 'tor-' + i;
-    btn.disabled = true;
-    btn.textContent = i === 1 ? '🚦 Tor 1\\nSTART' : i === TORE ? `🏁 Tor ${{i}}\\nZIEL` : `📡 Tor ${{i}}`;
-    btn.style.whiteSpace = 'pre';
-    btn.onclick = () => torSignalSenden(i);
-    grid.appendChild(btn);
+function aufbauen(){{
+  const g=document.getElementById('grid');g.innerHTML='';
+  for(let i=1;i<=TORE;i++){{
+    const b=document.createElement('button');
+    b.className='tor-btn'+(i===TORE?' ziel':'');
+    b.id='t'+i; b.disabled=true;
+    b.textContent=i===1?'🚦 Tor 1\\nSTART':i===TORE?`🏁 Tor ${{i}}\\nZIEL`:`📡 Tor ${{i}}`;
+    b.onclick=()=>send(i); g.appendChild(b);
   }}
 }}
-
-function toreUpdaten(naechstes) {{
-  for (let i = 1; i <= TORE; i++) {{
-    const btn = document.getElementById('tor-' + i);
-    if (!btn) continue;
-    btn.disabled = true;
-    btn.classList.remove('aktiv', 'passiert');
-    if (i < naechstes) btn.classList.add('passiert');
-    if (i === naechstes) {{
-      btn.classList.add('aktiv');
-      btn.disabled = false;
-    }}
+function updTore(n){{
+  for(let i=1;i<=TORE;i++){{
+    const b=document.getElementById('t'+i);if(!b)continue;
+    b.disabled=true; b.classList.remove('aktiv','passiert');
+    if(i<n)b.classList.add('passiert');
+    if(i===n){{b.classList.add('aktiv');b.disabled=false;}}
   }}
 }}
+function timerStart(){{startTs=Date.now();zw=[];document.getElementById('tzahl').classList.add('run');document.getElementById('tlabel').textContent='⏱️ läuft...';document.getElementById('resetBtn').style.display='block';tint=setInterval(()=>{{document.getElementById('tzahl').textContent=fmt((Date.now()-startTs)/1000)}},50)}}
+function timerStop(v){{if(tint){{clearInterval(tint);tint=null}}document.getElementById('tzahl').classList.remove('run');if(v!==undefined)document.getElementById('tzahl').textContent=fmt(v);document.getElementById('tlabel').textContent='Fertig';document.getElementById('resetBtn').style.display='none'}}
 
-function timerStarten() {{
-  startTs = Date.now();
-  zwischenzeiten = [];
-  const zahl = document.getElementById('timerZahl');
-  zahl.classList.add('laueft');
-  document.getElementById('timerLabel').textContent = '⏱️ Lauf läuft...';
-  document.getElementById('resetBtn').style.display = 'block';
-  timerInt = setInterval(() => {{
-    const sek = (Date.now() - startTs) / 1000;
-    zahl.textContent = sek.toFixed(3).padStart(6, '0');
-  }}, 50);
+async function loadFahrer(){{
+  try{{const r=await fetch(API+'/fahrer'),d=await r.json();
+  const s=document.getElementById('sel');
+  s.innerHTML='<option value="">— Fahrer wählen —</option>'+d.map(f=>`<option value="${{f.id}}">#${{f.startnummer}} ${{f.name}} (${{f.fahrzeug}})</option>`).join('');
+  lg('Fahrer: '+d.length,'ok')}}catch(e){{lg(e.message,'err')}}
+}}
+function onFahrer(){{
+  fahrer=parseInt(document.getElementById('sel').value)||null;
+  if(!fahrer){{updTore(0);return}}
+  naechstes=1;updTore(1);document.getElementById('tlabel').textContent='Tor 1 drücken';document.getElementById('tzahl').textContent='00.000';st('Bereit','info');loadZeiten();
+}}
+async function send(nr){{
+  if(!fahrer)return;
+  const ts=Date.now()/1000;document.getElementById('t'+nr).disabled=true;
+  try{{
+    const r=await fetch(API+'/kamera/tor',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{fahrer_id:fahrer,tor_nr:nr,zeitstempel:ts}})}});
+    const d=await r.json();
+    if(!r.ok){{st('Fehler: '+d.detail,'err');lg(d.detail,'err');document.getElementById('t'+nr).disabled=false;return}}
+    lg(d.message,'ok');
+    if(d.status==='start'){{timerStart();naechstes=2;updTore(2);st('START!','info')}}
+    else if(d.status==='zwischen'){{zw.push({{t:nr,z:d.zwischenzeit}});document.getElementById('zwischen').innerHTML=zw.map(x=>`<div style="font-size:12px;color:#FFD740;padding:3px 0">Tor ${{x.t}}: ${{x.z.toFixed(3)}}s</div>`).join('');naechstes=d.naechstes_tor;updTore(naechstes);st(`Tor ${{nr}} — ${{d.zwischenzeit.toFixed(3)}}s`,'zw')}}
+    else if(d.status==='ziel'){{timerStop(d.gesamtzeit);updTore(0);st(`ZIEL! ${{d.gesamtzeit.toFixed(3)}}s`,'ok');setTimeout(()=>{{updTore(1);document.getElementById('zwischen').innerHTML='';document.getElementById('tlabel').textContent='Nächster Lauf'}},4000);loadZeiten()}}
+  }}catch(e){{lg(e.message,'err');st('Netzwerkfehler','err');document.getElementById('t'+nr).disabled=false}}
+}}
+async function doReset(){{
+  if(!fahrer||!confirm('Abbrechen?'))return;
+  await fetch(API+'/kamera/lauf/'+fahrer+'/reset',{{method:'DELETE'}});
+  if(tint){{clearInterval(tint);tint=null}}naechstes=1;updTore(1);document.getElementById('tzahl').textContent='00.000';document.getElementById('tlabel').textContent='Abgebrochen';document.getElementById('zwischen').innerHTML='';document.getElementById('resetBtn').style.display='none';st('Zurückgesetzt','info');
+}}
+async function loadZeiten(){{
+  if(!fahrer)return;
+  try{{const r=await fetch(API+'/zeiten/'+fahrer),d=await r.json();
+  const box=document.getElementById('zeiten');
+  if(!d.length){{box.innerHTML='<p style="color:#555;font-size:12px">Keine Zeiten.</p>';return}}
+  const best=Math.min(...d.map(z=>z.gesamtzeit));
+  box.innerHTML=d.map((z,i)=>`<div class="zeit-row"><span>Lauf ${{i+1}}</span><span class="zeit-val">${{z.gesamtzeit.toFixed(3)}}s</span></div>`).join('')+`<div style="color:#C8A415;font-weight:700;margin-top:8px;font-size:13px">⭐ Beste: ${{best.toFixed(3)}}s</div>`
+  }}catch(e){{}}
 }}
 
-function timerStoppen(finalSek) {{
-  if (timerInt) {{ clearInterval(timerInt); timerInt = null; }}
-  const zahl = document.getElementById('timerZahl');
-  zahl.classList.remove('laueft');
-  if (finalSek !== undefined) zahl.textContent = finalSek.toFixed(3);
-  document.getElementById('timerLabel').textContent = 'Lauf beendet — bereit für nächsten';
-  document.getElementById('resetBtn').style.display = 'none';
-}}
-
-function zwischenzeigUpdaten() {{
-  const list = document.getElementById('zwischenList');
-  if (zwischenzeiten.length === 0) {{ list.innerHTML = ''; return; }}
-  list.innerHTML = zwischenzeiten.map((z, i) =>
-    `<div class="zwischen-item aktiv">Tor ${{z.tor}} passiert: <span style="color:#FFD740;font-family:monospace">${{z.zeit.toFixed(3)}}s</span></div>`
-  ).join('');
-}}
-
-async function fahrerLaden() {{
-  try {{
-    const res = await fetch(API + '/fahrer');
-    const daten = await res.json();
-    const sel = document.getElementById('fahrerSelect');
-    if (daten.length === 0) {{
-      sel.innerHTML = '<option value="">Keine Fahrer registriert</option>';
-      return;
-    }}
-    sel.innerHTML = '<option value="">-- Fahrer auswählen --</option>' +
-      daten.map(f => `<option value="${{f.id}}">#${{f.startnummer}} — ${{f.name}} (${{f.fahrzeug}})</option>`).join('');
-    log('Fahrer geladen: ' + daten.length, 'ok');
-  }} catch(e) {{ log('Fehler: ' + e.message, 'err'); }}
-}}
-
-function fahrerGewaehlt() {{
-  const sel = document.getElementById('fahrerSelect');
-  aktiverFahrer = sel.value ? parseInt(sel.value) : null;
-  if (!aktiverFahrer) {{
-    toreUpdaten(0);
-    document.getElementById('timerLabel').textContent = 'Fahrer auswählen um zu starten';
-    document.getElementById('timerZahl').textContent = '00.000';
-    document.getElementById('zwischenList').innerHTML = '';
-    document.getElementById('resetBtn').style.display = 'none';
-    if (timerInt) {{ clearInterval(timerInt); timerInt = null; }}
-    return;
-  }}
-  naechstesTor = 1;
-  toreUpdaten(1);
-  document.getElementById('timerLabel').textContent = 'Bereit — Tor 1 (Start) drücken';
-  document.getElementById('timerZahl').textContent = '00.000';
-  document.getElementById('zwischenList').innerHTML = '';
-  statusZeigen('✓ Fahrer ausgewählt — Tor 1 drücken um Lauf zu starten', 'info');
-  log('Fahrer: ID ' + aktiverFahrer, 'info');
-  zeitenLaden();
-}}
-
-async function torSignalSenden(torNr) {{
-  if (!aktiverFahrer) return;
-  const ts = Date.now() / 1000;
-  document.getElementById('tor-' + torNr).disabled = true;
-  log(`Tor ${{torNr}} Signal — ts: ${{ts.toFixed(3)}}`, 'info');
-  try {{
-    const res = await fetch(API + '/kamera/tor', {{
-      method: 'POST',
-      headers: {{'Content-Type': 'application/json'}},
-      body: JSON.stringify({{fahrer_id: aktiverFahrer, tor_nr: torNr, zeitstempel: ts}})
-    }});
-    const data = await res.json();
-    if (!res.ok) {{
-      statusZeigen('Fehler: ' + data.detail, 'err');
-      log('Fehler: ' + data.detail, 'err');
-      document.getElementById('tor-' + torNr).disabled = false;
-      return;
-    }}
-    log(data.message, 'ok');
-
-    if (data.status === 'start') {{
-      timerStarten();
-      naechstesTor = 2;
-      toreUpdaten(2);
-      statusZeigen('🚦 START! Lauf ' + data.lauf_id + ' — weiter zu Tor 2', 'info');
-
-    }} else if (data.status === 'zwischen') {{
-      zwischenzeiten.push({{tor: torNr, zeit: data.zwischenzeit}});
-      zwischenzeigUpdaten();
-      naechstesTor = data.naechstes_tor;
-      toreUpdaten(naechstesTor);
-      statusZeigen(`✓ Tor ${{torNr}} — ${{data.zwischenzeit.toFixed(3)}}s — weiter zu Tor ${{data.naechstes_tor}}`, 'zwischen');
-
-    }} else if (data.status === 'ziel') {{
-      timerStoppen(data.gesamtzeit);
-      toreUpdaten(0);
-      statusZeigen(`🏁 ZIEL! Gesamtzeit: ${{data.gesamtzeit.toFixed(3)}} Sekunden`, 'ok');
-      zwischenzeiten.push({{tor: torNr, zeit: data.gesamtzeit}});
-      zwischenzeigUpdaten();
-      naechstesTor = 1;
-      setTimeout(() => {{
-        toreUpdaten(1);
-        document.getElementById('timerLabel').textContent = 'Bereit für nächsten Lauf — Tor 1 drücken';
-        document.getElementById('zwischenList').innerHTML = '';
-      }}, 4000);
-      zeitenLaden();
-    }}
-
-  }} catch(e) {{
-    log('Netzwerkfehler: ' + e.message, 'err');
-    statusZeigen('Server nicht erreichbar!', 'err');
-    document.getElementById('tor-' + torNr).disabled = false;
-  }}
-}}
-
-async function laufReset() {{
-  if (!aktiverFahrer) return;
-  if (!confirm('Aktuellen Lauf abbrechen?')) return;
-  try {{
-    await fetch(API + '/kamera/lauf/' + aktiverFahrer + '/reset', {{method: 'DELETE'}});
-    if (timerInt) {{ clearInterval(timerInt); timerInt = null; }}
-    naechstesTor = 1;
-    toreUpdaten(1);
-    document.getElementById('timerZahl').textContent = '00.000';
-    document.getElementById('timerLabel').textContent = 'Lauf abgebrochen — Tor 1 drücken';
-    document.getElementById('zwischenList').innerHTML = '';
-    document.getElementById('resetBtn').style.display = 'none';
-    statusZeigen('Lauf zurückgesetzt', 'info');
-    log('Lauf abgebrochen', 'w');
-  }} catch(e) {{ log('Reset Fehler: ' + e.message, 'err'); }}
-}}
-
-async function zeitenLaden() {{
-  if (!aktiverFahrer) return;
-  try {{
-    const res = await fetch(API + '/zeiten/' + aktiverFahrer);
-    const zeiten = await res.json();
-    const box = document.getElementById('zeitenBox');
-    if (zeiten.length === 0) {{
-      box.innerHTML = '<p style="color:#555;font-size:13px">Noch keine Zeiten.</p>';
-      return;
-    }}
-    const beste = Math.min(...zeiten.map(z => z.gesamtzeit));
-    box.innerHTML = zeiten.map((z, i) => `
-      <div class="zeit-row">
-        <span>Lauf ${{i+1}}</span>
-        <span>${{z.rundenzeit.toFixed(3)}}s</span>
-        <span class="zeit-val">${{z.gesamtzeit.toFixed(3)}}s</span>
-      </div>`).join('') +
-      `<div class="beste">⭐ Beste Zeit: ${{beste.toFixed(3)}}s</div>`;
-  }} catch(e) {{ log('Fehler Zeiten: ' + e.message, 'err'); }}
-}}
-
-// ── PDF Export ─────────────────────────────────────────────
-toreAufbauen();
-fahrerLaden();
+aufbauen(); loadFahrer();
 </script>
-</body>
-</html>"""
+</body></html>"""
     return HTMLResponse(content=html)
 
-# ── PDF Export ───────────────────────────────────────────────
-@app.get("/ergebnisse/pdf", response_class=HTMLResponse)
-def ergebnisse_pdf():
-    db = SessionLocal()
-    fahrer_liste = db.query(Fahrer).all()
-    status = db.query(RennStatus).first()
-    ergebnis = []
-    for fahrer in fahrer_liste:
-        zeiten = db.query(Zeit).filter(Zeit.fahrer_id == fahrer.id).all()
-        beste_zeit = min((z.gesamtzeit for z in zeiten), default=None)
-        strafzeiten = db.query(Strafzeit).filter(Strafzeit.fahrer_id == fahrer.id).all()
-        gesamt_strafe = sum(s.strafzeit for s in strafzeiten)
-        ergebnis.append({"startnummer": fahrer.startnummer, "name": fahrer.name,
-                         "fahrzeug": fahrer.fahrzeug, "beste_zeit": beste_zeit,
-                         "gesamt_strafe": gesamt_strafe, "anzahl_laeufe": len(zeiten)})
-    db.close()
-    ergebnis.sort(key=lambda x: (x["beste_zeit"] is None, x["beste_zeit"]))
-    def fmt(s):
-        if s is None: return "—"
-        m = int(s // 60)
-        r = s % 60
-        return f"{m}:{r:05.2f} min" if m > 0 else f"{r:.2f} s"
-    plaetze = ["🥇","🥈","🥉"]
-    zeilen = ""
-    for i, f in enumerate(ergebnis):
-        platz = plaetze[i] if i < 3 else str(i+1)+"."
-        bg = "#FFF8E1" if i==0 else "#F5F5F5" if i==1 else "#FFF3E0" if i==2 else "white"
-        zeilen += f'<tr style="background:{bg}"><td style="text-align:center;font-size:20px">{platz}</td><td><strong>{f["name"]}</strong></td><td>{f["fahrzeug"]}</td><td style="text-align:center">#{f["startnummer"]}</td><td style="text-align:center">{f["anzahl_laeufe"]}</td><td style="text-align:center;color:#C62828;font-weight:700">{("+" + str(f["gesamt_strafe"]) + "s") if f["gesamt_strafe"] > 0 else "—"}</td><td style="text-align:center;font-family:monospace;font-weight:700;font-size:16px">{fmt(f["beste_zeit"])}</td></tr>'
-    abschluss = f"Abgeschlossen: {status.abgeschlossen_um}" if status and status.abgeschlossen_um else "Rennen läuft noch"
-    return HTMLResponse(f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Ergebnisse</title>
-<style>body{{font-family:'Segoe UI',Arial,sans-serif;padding:40px;color:#2B2B2B}}h1{{font-size:28px;margin-bottom:4px}}.sub{{color:#888;font-size:14px;margin-bottom:30px}}table{{width:100%;border-collapse:collapse}}th{{background:#2B2B2B;color:white;padding:12px;font-size:13px}}td{{padding:12px;border-bottom:1px solid #F0F0F0}}@media print{{button{{display:none}}}}</style>
-</head><body><h1>🏁 RC-Car Rally — Ergebnisse</h1><p class="sub">{abschluss} | {len(ergebnis)} Fahrer</p>
-<button onclick="window.print()" style="background:#2B2B2B;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-bottom:24px">🖨️ Drucken / Als PDF</button>
-<table><thead><tr><th>Platz</th><th>Name</th><th>Fahrzeug</th><th>Start-Nr.</th><th>Läufe</th><th>Strafzeit</th><th>Beste Zeit</th></tr></thead><tbody>{zeilen}</tbody></table></body></html>""")
+# ── Root ──────────────────────────────────────────────────────
+@app.get("/")
+def root():
+    return {"message": "PMK RC-Rally API", "docs": "/docs"}
 
-# ── Frontend Static Files ─────────────────────────────────────
-import os
-frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
-if os.path.isdir(frontend_dir):
-    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+# ── Static Files (/app/) ──────────────────────────────────────
+_frontend = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.isdir(_frontend):
+    app.mount("/app", StaticFiles(directory=_frontend, html=True), name="frontend")

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum — PMK RC-Car Rally</title>
+<style>
+:root {
+  --bg:#09090B; --surface:#18181B; --surface2:#27272A; --border:#3F3F46;
+  --gold:#F59E0B; --text:#FAFAFA; --muted:#A1A1AA; --dim:#71717A; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:var(--gold);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:32px;}
+.nav-brand{font-size:17px;font-weight:800;color:var(--text);} .nav-brand em{color:var(--gold);font-style:normal;}
+.nav-links{display:flex;gap:4px;}
+.nav-links a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s;}
+.nav-links a:hover{color:var(--text);background:var(--surface2);}
+
+.page{max-width:680px;margin:0 auto;padding:48px 24px 72px;}
+.page-title{font-size:28px;font-weight:900;margin-bottom:6px;}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:36px;}
+
+.section{margin-bottom:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;}
+.section h2{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.section p,.section address{font-size:14px;color:var(--text);line-height:1.8;font-style:normal;}
+.section p+p{margin-top:10px;}
+
+.placeholder{background:rgba(245,158,11,.08);border:1px dashed rgba(245,158,11,.4);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--gold);margin-top:8px;}
+
+.notice{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.25);border-radius:8px;padding:14px 16px;font-size:13px;color:#93C5FD;margin-top:24px;line-height:1.6;}
+
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim);}
+footer a{color:var(--gold);}
+
+@media(max-width:600px){.nav-links{display:none;}.page{padding:32px 16px 56px;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">🏁 PMK RC-Car <em>Rally</em></a>
+  <div class="nav-links">
+    <a href="index.html">Rennen</a>
+    <a href="leaderboard.html">Rangliste</a>
+    <a href="faq.html">FAQ</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-title">Impressum</div>
+  <div class="page-sub">Angaben gemäß § 5 TMG</div>
+
+  <div class="section">
+    <h2>Verantwortlich</h2>
+    <address>
+      <strong>PMK RC-Car Rally</strong><br>
+      Damjan Besarovic<br>
+      Brötzinger Str. 32<br>
+      75175 Pforzheim<br>
+      Deutschland
+    </address>
+  </div>
+
+  <div class="section">
+    <h2>Kontakt</h2>
+    <p>
+      E-Mail: <a href="mailto:besarovi@hs-pforzheim.de">besarovi@hs-pforzheim.de</a>
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Datenschutz</h2>
+    <p>Diese Webanwendung verarbeitet personenbezogene Daten ausschließlich zum Zweck der Durchführung der RC-Car-Rally-Veranstaltungen des PMK.</p>
+    <p>Folgende Daten werden erhoben und gespeichert:</p>
+    <p>
+      · Name und E-Mail-Adresse (Pflichtangabe bei Registrierung)<br>
+      · Fahrzeugbezeichnung (Pflichtangabe bei Renn-Anmeldung)<br>
+      · Rennzeiten und Strafzeiten (im Rahmen der Veranstaltung)
+    </p>
+    <p>
+      <strong>Rechtsgrundlage:</strong> Die Verarbeitung erfolgt auf Basis deiner ausdrücklichen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die bei der Anmeldung erteilt wird.
+    </p>
+    <p>
+      <strong>Speicherdauer:</strong> Alle personenbezogenen Daten werden nach Abschluss des jeweiligen Events gelöscht. Zeitdaten ohne Personenbezug können für statistische Auswertungen länger gespeichert werden.
+    </p>
+    <p>
+      <strong>Deine Rechte:</strong> Du hast jederzeit das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten. Wende dich dazu per E-Mail an die oben genannte Adresse.
+    </p>
+    <p>
+      <strong>Hosting:</strong> Diese Anwendung wird lokal auf einem privaten Server des Veranstalters betrieben. Es werden keine Daten an Dritte weitergegeben.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Haftungsausschluss</h2>
+    <p>
+      Die Teilnahme an RC-Car-Rally-Veranstaltungen erfolgt auf eigene Gefahr. Der Veranstalter übernimmt keine Haftung für Schäden an Fahrzeugen, Personen oder Dritten, die im Rahmen der Veranstaltung entstehen, sofern diese nicht auf grobe Fahrlässigkeit oder Vorsatz des Veranstalters zurückzuführen sind.
+    </p>
+    <p>
+      Für die Inhalte externer Links (z.B. Google Maps) übernehmen wir keine Haftung. Für den Inhalt der verlinkten Seiten sind ausschließlich deren Betreiber verantwortlich.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Technische Umsetzung</h2>
+    <p>
+      Diese Webanwendung wurde entwickelt mit: Python / FastAPI (Backend), HTML/CSS/JavaScript (Frontend), SQLite (Datenbank). Keine externen Tracking-Dienste, keine Cookies zu Werbezwecken.
+    </p>
+  </div>
+
+  <div class="notice">
+    ℹ️ Diese Seite wird lokal gehostet und ist nicht öffentlich im Internet erreichbar. Das Impressum dient der Transparenz gegenüber den Teilnehmern der Veranstaltung.
+  </div>
+</div>
+
+<footer>
+  PMK RC-Car Rally 2026 ·
+  <a href="index.html">Rennen</a> ·
+  <a href="faq.html">FAQ</a> ·
+  <a href="impressum.html">Impressum</a>
+</footer>
+
+</body>
+</html>

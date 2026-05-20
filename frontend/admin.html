@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — PMK RC-Car Rally</title>
+<style>
+:root {
+  --bg:#09090B; --surface:#18181B; --surface2:#27272A; --border:#3F3F46;
+  --gold:#F59E0B; --gold-dim:#92400E; --text:#FAFAFA; --muted:#A1A1AA; --dim:#71717A;
+  --green:#22C55E; --green-bg:#14532D; --red:#EF4444; --red-bg:#7F1D1D;
+  --blue:#3B82F6; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+
+/* Nav */
+.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:24px;}
+.nav-brand{font-size:17px;font-weight:800;} .nav-brand em{color:var(--gold);font-style:normal;}
+.nav-links{display:flex;gap:4px;flex:1;}
+.nav-links a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s;}
+.nav-links a:hover{color:var(--text);background:var(--surface2);} .nav-links a.active{color:var(--text);}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold);}
+.btn-outline{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;transition:border-color .15s,color .15s;}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Page */
+.page{max-width:1080px;margin:0 auto;padding:32px 24px 64px;}
+.denied{display:none;text-align:center;padding:80px 20px;}
+.denied-icon{font-size:48px;margin-bottom:16px;}
+
+/* Tabs */
+.page-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:28px;overflow-x:auto;}
+.page-tab{padding:9px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border:none;background:none;transition:all .15s;white-space:nowrap;}
+.page-tab.active{background:var(--surface2);color:var(--text);}
+.page-tab:hover:not(.active){color:var(--text);}
+.tab-pane{display:none;} .tab-pane.active{display:block;}
+
+/* Cards / surfaces */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid.col3{grid-template-columns:1fr 1fr 1fr;}
+.form-grid.col1{grid-template-columns:1fr;}
+@media(max-width:600px){.form-grid,.form-grid.col3{grid-template-columns:1fr;}}
+.field{margin-bottom:0;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);}
+.field textarea{resize:vertical;min-height:72px;}
+.field select option{background:var(--surface);}
+.field-full{grid-column:1/-1;}
+
+/* Buttons */
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .15s;}
+.btn.gold{background:var(--gold);color:#09090B;} .btn.gold:hover{opacity:.85;}
+.btn.ghost{background:none;border:1px solid var(--border);color:var(--muted);} .btn.ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn.danger{background:none;border:1px solid var(--red-bg);color:var(--red);} .btn.danger:hover{background:var(--red-bg);}
+.btn.green{background:var(--green-bg);color:var(--green);border:1px solid var(--green);} .btn.green:hover{opacity:.85;}
+.btn.blue{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);} .btn.blue:hover{background:rgba(59,130,246,.25);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+/* Alert */
+.alert{padding:10px 13px;border-radius:8px;font-size:13px;margin-top:10px;}
+.alert.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86EFAC;}
+.alert.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;}
+
+/* Race list (admin) */
+.race-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.race-row-info{flex:1;min-width:180px;}
+.race-row-name{font-size:14px;font-weight:700;}
+.race-row-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.race-row-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.status-pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.status-pill.offen{background:rgba(34,197,94,.12);color:#22C55E;border:1px solid rgba(34,197,94,.3);}
+.status-pill.laufend{background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.3);}
+.status-pill.abgeschlossen{background:var(--surface2);color:var(--dim);border:1px solid var(--border);}
+
+/* Participants table */
+.table{width:100%;border-collapse:collapse;}
+.table th{background:var(--bg);padding:9px 13px;font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--border);}
+.table td{padding:11px 13px;font-size:13px;border-bottom:1px solid var(--surface2);}
+.table tr:last-child td{border-bottom:none;}
+.table tr:hover td{background:var(--surface2);}
+.ci-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.ci-badge.ja{background:var(--green-bg);color:var(--green);}
+.ci-badge.nein{background:var(--surface2);color:var(--dim);border:1px solid var(--border);}
+.zeit-mono{font-family:'Courier New',monospace;font-weight:700;color:var(--gold);}
+
+/* Straf-Dropdown info */
+.straf-preview{font-size:12px;color:var(--muted);margin-top:6px;padding:8px 10px;background:rgba(239,68,68,.08);border-radius:6px;border:1px solid rgba(239,68,68,.2);display:none;}
+
+/* Rennen-Status Banner */
+.status-banner{padding:12px 16px;border-radius:9px;font-size:13px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.status-banner.offen{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#86EFAC;}
+.status-banner.laufend{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);color:var(--gold);}
+.status-banner.abgeschlossen{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+
+.select-race-hint{text-align:center;padding:48px 20px;color:var(--dim);}
+
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim);}
+
+@media(max-width:600px){.nav-links{display:none;}.page{padding:20px 14px 48px;}.page-tabs{border-radius:8px;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">🏁 PMK RC-Car <em>Rally</em></a>
+  <div class="nav-links">
+    <a href="index.html">Rennen</a>
+    <a href="leaderboard.html">Rangliste</a>
+    <a href="profil.html">Mein Profil</a>
+    <a href="admin.html" class="active">Admin</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatar">A</div>
+      <span id="navName">Admin</span>
+    </div>
+    <button class="btn-outline" onclick="logout()">Abmelden</button>
+  </div>
+</nav>
+
+<div class="denied" id="denied">
+  <div class="denied-icon">🔒</div>
+  <h2 style="font-size:22px;font-weight:800;margin-bottom:8px">Kein Zugriff</h2>
+  <p style="color:var(--muted);margin-bottom:20px">Dieser Bereich ist nur für Admins zugänglich.</p>
+  <a href="index.html"><button class="btn gold" style="padding:10px 24px">Zur Startseite</button></a>
+</div>
+
+<div class="page" id="mainPage" style="display:none">
+
+  <div class="page-tabs">
+    <button class="page-tab active" onclick="switchTab('rennen')">🏁 Rennen verwalten</button>
+    <button class="page-tab" onclick="switchTab('betrieb')">⚙️ Rennen betreiben</button>
+    <button class="page-tab" onclick="switchTab('zeiten')">⏱ Zeiten &amp; Strafen</button>
+  </div>
+
+  <!-- ── Tab 1: Rennen verwalten ── -->
+  <div class="tab-pane active" id="tabRennen">
+
+    <!-- Neues Rennen erstellen -->
+    <div class="card">
+      <div class="card-title">➕ Neues Rennen erstellen</div>
+      <div id="createAlert" style="display:none"></div>
+      <div class="form-grid">
+        <div class="field field-full"><label>Rennen-Name</label><input type="text" id="cName" placeholder="z.B. PMK Frühjahrsrennen 2026"></div>
+        <div class="field"><label>Datum</label><input type="date" id="cDatum"></div>
+        <div class="field"><label>Uhrzeit</label><input type="time" id="cUhrzeit" value="10:00"></div>
+        <div class="field"><label>Ort / Strecke</label><input type="text" id="cOrt" placeholder="z.B. Vereinsgelände PMK, Musterstraße 1"></div>
+        <div class="field"><label>Standort-Link <span style="font-weight:400;text-transform:none">(Google Maps, optional)</span></label><input type="url" id="cOrtLink" placeholder="https://maps.google.com/..."></div>
+        <div class="field"><label>Max. Teilnehmer</label><input type="number" id="cMax" value="30" min="1" max="999"></div>
+        <div class="field field-full"><label>Beschreibung (optional)</label><textarea id="cBeschreibung" placeholder="Infos zum Rennen, Regeln, Anfahrt..."></textarea></div>
+      </div>
+      <div class="btn-row"><button class="btn gold" onclick="createRennen()">Rennen erstellen</button></div>
+    </div>
+
+    <!-- Rennen-Liste -->
+    <div class="card-title" style="margin-top:8px">Alle Rennen</div>
+    <div id="rennenList"><p style="color:var(--dim);font-size:13px">Wird geladen...</p></div>
+
+  </div>
+
+  <!-- ── Tab 2: Rennen betreiben ── -->
+  <div class="tab-pane" id="tabBetrieb">
+    <div class="card">
+      <div class="card-title">🏁 Rennen auswählen</div>
+      <div class="field"><label>Rennen</label>
+        <select id="betriebRennenSel" onchange="loadBetrieb()"><option value="">— Rennen wählen —</option></select>
+      </div>
+    </div>
+
+    <div id="betriebContent" style="display:none">
+      <div class="status-banner" id="betriebBanner"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <!-- Rennen-Steuerung -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">🎛️ Rennen-Steuerung</div>
+          <div id="betriebAlert" style="display:none"></div>
+          <div class="btn-row" style="margin-top:0">
+            <button class="btn green" id="btnStarten" onclick="rennStarten()">▶ Starten</button>
+            <button class="btn danger" id="btnAbschliessen" onclick="rennAbschliessen()">⏹ Abschließen</button>
+            <button class="btn ghost" id="btnReset" onclick="rennReset()">↺ Zurücksetzen</button>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn blue" onclick="openPDF()">🖨️ Ergebnisse PDF</button>
+          </div>
+        </div>
+
+        <!-- Check-in -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">✅ Check-in</div>
+          <div id="checkinAlert" style="display:none"></div>
+          <div class="field"><label>Fahrer</label>
+            <select id="checkinFahrer"><option value="">— Fahrer wählen —</option></select>
+          </div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn gold" onclick="doCheckin()">Check-in</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teilnehmer-Liste -->
+      <div class="card">
+        <div class="card-title">👥 Teilnehmerliste <span id="teilnehmerCount" style="font-size:12px;font-weight:400;color:var(--muted)"></span></div>
+        <div id="teilnehmerTable"></div>
+      </div>
+    </div>
+
+    <div class="select-race-hint" id="betriebHint">Bitte oben ein Rennen auswählen.</div>
+  </div>
+
+  <!-- ── Tab 3: Zeiten & Strafen ── -->
+  <div class="tab-pane" id="tabZeiten">
+    <div class="card">
+      <div class="card-title">🏁 Rennen auswählen</div>
+      <div class="field"><label>Rennen</label>
+        <select id="zeitenRennenSel" onchange="loadZeitenTab()"><option value="">— Rennen wählen —</option></select>
+      </div>
+    </div>
+
+    <div id="zeitenContent" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- Zeit eintragen -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">⏱ Zeit eintragen</div>
+          <div id="zeitAlert" style="display:none"></div>
+          <div class="field"><label>Fahrer</label>
+            <select id="zeitFahrer"><option value="">— Fahrer wählen —</option></select>
+          </div>
+          <div class="form-grid" style="margin-top:12px">
+            <div class="field"><label>Rundenzeit (s)</label><input type="number" id="zeitSek" step="0.001" min="0" placeholder="z.B. 45.230"></div>
+            <div class="field"><label>Strafzeit (s)</label><input type="number" id="zeitStraf" step="0.5" min="0" value="0" placeholder="0"></div>
+          </div>
+          <div class="btn-row"><button class="btn gold" onclick="doZeit()">Eintragen</button></div>
+        </div>
+
+        <!-- Strafzeit -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">🚩 Strafzeit vergeben</div>
+          <div id="strafAlert" style="display:none"></div>
+          <div class="field"><label>Fahrer</label>
+            <select id="strafFahrer"><option value="">— Fahrer wählen —</option></select>
+          </div>
+          <div class="field" style="margin-top:12px"><label>Vergehen</label>
+            <select id="strafGrund" onchange="updateStrafPreview()">
+              <option value="">— Vergehen wählen —</option>
+              <option value="Tor verfehlt" data-s="5">Tor verfehlt (+5s)</option>
+              <option value="Fahrzeug berührt" data-s="3">Fahrzeug berührt (+3s)</option>
+              <option value="Kurs verlassen" data-s="10">Kurs verlassen (+10s)</option>
+              <option value="Falscher Weg" data-s="10">Falscher Weg (+10s)</option>
+              <option value="Kollision" data-s="5">Kollision (+5s)</option>
+              <option value="Frühstart" data-s="3">Frühstart (+3s)</option>
+              <option value="Fahrfehler" data-s="2">Fahrfehler (+2s)</option>
+              <option value="Disqualifikation" data-s="60">Disqualifikation (+60s)</option>
+              <option value="Sonstiges" data-s="5">Sonstiges (+5s)</option>
+            </select>
+            <div class="straf-preview" id="strafPreview"></div>
+          </div>
+          <div class="btn-row"><button class="btn danger" onclick="doStraf()">Strafzeit vergeben</button></div>
+        </div>
+
+      </div>
+
+      <!-- Zeiten-Übersicht -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-title">📊 Zeiten-Übersicht <button class="btn ghost" style="margin-left:auto;font-size:12px;padding:5px 12px" onclick="loadZeitenUebersicht()">↻ Aktualisieren</button></div>
+        <div id="zeitenUebersicht"><p style="color:var(--dim);font-size:13px">Wird geladen...</p></div>
+      </div>
+    </div>
+
+    <div class="select-race-hint" id="zeitenHint">Bitte oben ein Rennen auswählen.</div>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- Edit-Rennen Modal -->
+<div style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;" id="editModal" onclick="closeEditOnBg(event)">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:500px;animation:fadeIn .15s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:17px;font-weight:800">Rennen bearbeiten</div>
+      <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1" onclick="closeEdit()">✕</button>
+    </div>
+    <div id="editAlert" style="display:none"></div>
+    <div class="form-grid">
+      <div class="field field-full"><label>Name</label><input type="text" id="eName"></div>
+      <div class="field"><label>Datum</label><input type="date" id="eDatum"></div>
+      <div class="field"><label>Uhrzeit</label><input type="time" id="eUhrzeit"></div>
+      <div class="field"><label>Ort</label><input type="text" id="eOrt"></div>
+      <div class="field"><label>Standort-Link <span style="font-weight:400;text-transform:none">(Google Maps, optional)</span></label><input type="url" id="eOrtLink" placeholder="https://maps.google.com/..."></div>
+      <div class="field"><label>Max. Teilnehmer</label><input type="number" id="eMax" min="1"></div>
+      <div class="field field-full"><label>Beschreibung</label><textarea id="eBeschreibung"></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="closeEdit()">Abbrechen</button>
+      <button class="btn gold" onclick="saveEdit()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<style>@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}</style>
+<footer>PMK RC-Car Rally 2026 · Admin-Panel · <a href="/simulator" style="color:var(--dim)">Kamera-Simulator</a> · <a href="faq.html" style="color:var(--dim)">FAQ</a> · <a href="impressum.html" style="color:var(--dim)">Impressum</a></footer>
+
+<script>
+const API = window.location.origin;
+let editRennenId = null;
+let betriebRennenId = null;
+let zeitenRennenId = null;
+
+const STRAF_MAP = {
+  'Tor verfehlt':5,'Fahrzeug berührt':3,'Kurs verlassen':10,'Falscher Weg':10,
+  'Kollision':5,'Frühstart':3,'Fahrfehler':2,'Disqualifikation':60,'Sonstiges':5
+};
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('rally_session')||'null'); } catch { return null; }
+}
+function clearSession() { localStorage.removeItem('rally_session'); }
+
+async function logout() {
+  const s = getSession();
+  if (s?.token) { try { await fetch(API+'/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+s.token}}); } catch {} }
+  clearSession(); location.href='index.html';
+}
+
+function switchTab(tab) {
+  ['rennen','betrieb','zeiten'].forEach(t => {
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+  });
+  document.querySelectorAll('.page-tab').forEach((b,i) => b.classList.toggle('active', i===['rennen','betrieb','zeiten'].indexOf(tab)));
+}
+
+function showAlert(id, msg, type='ok') {
+  const el=document.getElementById(id); el.className='alert '+type; el.textContent=msg; el.style.display='block';
+  setTimeout(()=>el.style.display='none', 4000);
+}
+
+function fmtDatum(datum,uhrzeit){
+  if(!datum)return '–';
+  try{const d=new Date(datum+'T'+(uhrzeit||'00:00'));return d.toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'})+(uhrzeit?' · '+uhrzeit+' Uhr':'');}catch{return datum;}
+}
+function fmtZeit(s){
+  if(s===null||s===undefined)return '—';
+  const m=Math.floor(s/60),r=(s%60).toFixed(3);
+  return m>0?`${m}:${r.padStart(6,'0')} min`:`${r} s`;
+}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── Rennen laden ──
+async function loadRennenList() {
+  const r = await fetch(API+'/rennen');
+  const rennen = await r.json();
+  renderRennenList(rennen);
+  // Populate selects
+  const opts = '<option value="">— Rennen wählen —</option>'+rennen.map(r=>`<option value="${r.id}">${escHtml(r.name)} (${r.datum||'?'})</option>`).join('');
+  ['betriebRennenSel','zeitenRennenSel'].forEach(id=>document.getElementById(id).innerHTML=opts);
+  return rennen;
+}
+
+function statusLabel(status){
+  const m={offen:'Offen',laufend:'● Läuft',abgeschlossen:'Abgeschlossen'};
+  return `<span class="status-pill ${status}">${m[status]||status}</span>`;
+}
+
+function renderRennenList(rennen) {
+  const el=document.getElementById('rennenList');
+  if(!rennen.length){el.innerHTML='<p style="color:var(--dim);font-size:13px">Keine Rennen vorhanden.</p>';return;}
+  el.innerHTML=rennen.map(r=>`
+    <div class="race-row">
+      <div class="race-row-info">
+        <div class="race-row-name">${escHtml(r.name)}</div>
+        <div class="race-row-meta">${fmtDatum(r.datum,r.uhrzeit)} · ${escHtml(r.ort)} · ${r.teilnehmer_count}/${r.max_teilnehmer} Fahrer</div>
+      </div>
+      ${statusLabel(r.status)}
+      <div class="race-row-actions">
+        <button class="btn ghost" style="font-size:12px;padding:6px 12px" onclick="openEdit(${r.id},'${escHtml(r.name)}','${r.datum}','${r.uhrzeit}','${escHtml(r.ort)}','${escHtml(r.ort_link||'')}',${r.max_teilnehmer},'${escHtml(r.beschreibung||'')}')">Bearbeiten</button>
+        <button class="btn danger" style="font-size:12px;padding:6px 12px" onclick="deleteRennen(${r.id},'${escHtml(r.name)}')">Löschen</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Rennen erstellen ──
+async function createRennen() {
+  const s=getSession();
+  const name=document.getElementById('cName').value.trim();
+  const datum=document.getElementById('cDatum').value;
+  const uhrzeit=document.getElementById('cUhrzeit').value;
+  const ort=document.getElementById('cOrt').value.trim();
+  const ort_link=document.getElementById('cOrtLink').value.trim()||null;
+  const max=parseInt(document.getElementById('cMax').value)||30;
+  const beschreibung=document.getElementById('cBeschreibung').value.trim();
+  if(!name||!datum||!ort) return showAlert('createAlert','Name, Datum und Ort sind erforderlich.','err');
+  try {
+    const r=await fetch(API+'/rennen',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.token},body:JSON.stringify({name,datum,uhrzeit,ort,ort_link,max_teilnehmer:max,beschreibung:beschreibung||null})});
+    const d=await r.json();
+    if(!r.ok) return showAlert('createAlert',d.detail||'Fehler','err');
+    showAlert('createAlert','Rennen erstellt!','ok');
+    ['cName','cOrt','cBeschreibung'].forEach(id=>document.getElementById(id).value='');
+    loadRennenList();
+  } catch { showAlert('createAlert','Server nicht erreichbar.','err'); }
+}
+
+// ── Edit Modal ──
+function openEdit(id,name,datum,uhrzeit,ort,ort_link,max,beschreibung) {
+  editRennenId=id;
+  document.getElementById('eName').value=name;
+  document.getElementById('eDatum').value=datum;
+  document.getElementById('eUhrzeit').value=uhrzeit||'';
+  document.getElementById('eOrt').value=ort;
+  document.getElementById('eOrtLink').value=ort_link||'';
+  document.getElementById('eMax').value=max;
+  document.getElementById('eBeschreibung').value=beschreibung||'';
+  document.getElementById('editAlert').style.display='none';
+  document.getElementById('editModal').style.display='flex';
+}
+function closeEdit(){document.getElementById('editModal').style.display='none';}
+function closeEditOnBg(e){if(e.target===document.getElementById('editModal'))closeEdit();}
+
+async function saveEdit() {
+  const s=getSession();
+  const name=document.getElementById('eName').value.trim();
+  const datum=document.getElementById('eDatum').value;
+  const uhrzeit=document.getElementById('eUhrzeit').value;
+  const ort=document.getElementById('eOrt').value.trim();
+  const ort_link=document.getElementById('eOrtLink').value.trim()||null;
+  const max=parseInt(document.getElementById('eMax').value)||30;
+  const beschreibung=document.getElementById('eBeschreibung').value.trim();
+  if(!name||!datum||!ort) return showAlert('editAlert','Name, Datum und Ort sind erforderlich.','err');
+  try {
+    const r=await fetch(API+'/rennen/'+editRennenId,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.token},body:JSON.stringify({name,datum,uhrzeit,ort,ort_link,max_teilnehmer:max,beschreibung:beschreibung||null})});
+    const d=await r.json();
+    if(!r.ok) return showAlert('editAlert',d.detail||'Fehler','err');
+    closeEdit(); loadRennenList();
+  } catch { showAlert('editAlert','Server nicht erreichbar.','err'); }
+}
+
+async function deleteRennen(id,name) {
+  if(!confirm(`Rennen "${name}" wirklich löschen? Alle Anmeldungen werden ebenfalls gelöscht.`)) return;
+  const s=getSession();
+  try {
+    const r=await fetch(API+'/rennen/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+s.token}});
+    if(r.ok) loadRennenList();
+  } catch {}
+}
+
+// ── Betrieb Tab ──
+async function loadBetrieb() {
+  const id=parseInt(document.getElementById('betriebRennenSel').value)||null;
+  betriebRennenId=id;
+  if(!id){document.getElementById('betriebContent').style.display='none';document.getElementById('betriebHint').style.display='block';return;}
+  document.getElementById('betriebContent').style.display='block';
+  document.getElementById('betriebHint').style.display='none';
+  const s=getSession();
+  try {
+    const [rr,tr]=await Promise.all([fetch(API+'/rennen/'+id),fetch(API+'/rennen/'+id+'/teilnehmer')]);
+    const rennen=await rr.json(), teilnehmer=await tr.json();
+    // Banner
+    const banner=document.getElementById('betriebBanner');
+    const statusTxt={offen:'🟢 Rennen offen — Anmeldungen möglich',laufend:'🟡 Rennen läuft — Timing aktiv',abgeschlossen:'🔴 Rennen abgeschlossen'};
+    banner.className='status-banner '+rennen.status;
+    banner.innerHTML=`<span>${statusTxt[rennen.status]||rennen.status}</span><span style="font-size:12px;font-weight:400">${teilnehmer.length} Teilnehmer</span>`;
+    // Steuerung-Buttons
+    document.getElementById('btnStarten').disabled=rennen.status!=='offen';
+    document.getElementById('btnAbschliessen').disabled=rennen.status==='abgeschlossen';
+    document.getElementById('btnReset').disabled=rennen.status==='offen';
+    // Check-in Select
+    const ciSel=document.getElementById('checkinFahrer');
+    ciSel.innerHTML='<option value="">— Fahrer wählen —</option>'+
+      teilnehmer.filter(t=>!t.eingecheckt).map(t=>`<option value="${t.id}">#${t.startnummer} ${escHtml(t.name)}</option>`).join('');
+    // Teilnehmer-Tabelle
+    renderTeilnehmer(teilnehmer, rennen.id);
+    document.getElementById('teilnehmerCount').textContent=`(${teilnehmer.length}/${rennen.max_teilnehmer})`;
+  } catch(e){console.error(e);}
+}
+
+function renderTeilnehmer(list, rennenId) {
+  const el=document.getElementById('teilnehmerTable');
+  if(!list.length){el.innerHTML='<p style="color:var(--dim);font-size:13px;padding:12px 0">Noch keine Teilnehmer.</p>';return;}
+  el.innerHTML=`<table class="table">
+    <thead><tr><th>#</th><th>Name</th><th>Fahrzeug</th><th>Check-in</th><th>Aktion</th></tr></thead>
+    <tbody>${list.map(t=>`<tr>
+      <td style="font-weight:700;color:var(--gold)">#${t.startnummer}</td>
+      <td>${escHtml(t.name)}</td>
+      <td style="color:var(--muted)">${escHtml(t.fahrzeug)}</td>
+      <td><span class="ci-badge ${t.eingecheckt?'ja':'nein'}">${t.eingecheckt?'✓ Ja':'Ausstehend'}</span></td>
+      <td>${!t.eingecheckt?`<button class="btn gold" style="font-size:11px;padding:5px 10px" onclick="checkinDirekt(${rennenId},${t.id})">Check-in</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function rennStarten() {
+  if(!betriebRennenId)return;
+  if(!confirm('Rennen starten?'))return;
+  const s=getSession();
+  try{const r=await fetch(API+'/rennen/'+betriebRennenId+'/starten',{method:'POST',headers:{Authorization:'Bearer '+s.token}});const d=await r.json();if(!r.ok)return showAlert('betriebAlert',d.detail,'err');showAlert('betriebAlert',d.message,'ok');loadBetrieb();}catch{showAlert('betriebAlert','Fehler.','err');}
+}
+async function rennAbschliessen() {
+  if(!betriebRennenId)return;
+  if(!confirm('Rennen endgültig abschließen?'))return;
+  const s=getSession();
+  try{const r=await fetch(API+'/rennen/'+betriebRennenId+'/abschliessen',{method:'POST',headers:{Authorization:'Bearer '+s.token}});const d=await r.json();if(!r.ok)return showAlert('betriebAlert',d.detail,'err');showAlert('betriebAlert',d.message,'ok');loadBetrieb();}catch{showAlert('betriebAlert','Fehler.','err');}
+}
+async function rennReset() {
+  if(!betriebRennenId)return;
+  if(!confirm('Rennen wieder auf "Offen" setzen?'))return;
+  const s=getSession();
+  try{const r=await fetch(API+'/rennen/'+betriebRennenId+'/reset',{method:'POST',headers:{Authorization:'Bearer '+s.token}});const d=await r.json();if(!r.ok)return showAlert('betriebAlert',d.detail,'err');showAlert('betriebAlert',d.message,'ok');loadBetrieb();}catch{showAlert('betriebAlert','Fehler.','err');}
+}
+
+async function doCheckin() {
+  const s=getSession(); const userId=parseInt(document.getElementById('checkinFahrer').value)||null;
+  if(!userId||!betriebRennenId)return;
+  try{const r=await fetch(API+'/rennen/'+betriebRennenId+'/checkin/'+userId,{method:'POST',headers:{Authorization:'Bearer '+s.token}});const d=await r.json();if(!r.ok)return showAlert('checkinAlert',d.detail,'err');showAlert('checkinAlert',d.message,'ok');loadBetrieb();}catch{showAlert('checkinAlert','Fehler.','err');}
+}
+async function checkinDirekt(rennenId, userId) {
+  const s=getSession();
+  try{const r=await fetch(API+'/rennen/'+rennenId+'/checkin/'+userId,{method:'POST',headers:{Authorization:'Bearer '+s.token}});if(r.ok)loadBetrieb();}catch{}
+}
+function openPDF(){if(betriebRennenId)window.open(API+'/rennen/'+betriebRennenId+'/ergebnisse/pdf','_blank');}
+
+// ── Zeiten Tab ──
+async function loadZeitenTab() {
+  const id=parseInt(document.getElementById('zeitenRennenSel').value)||null;
+  zeitenRennenId=id;
+  if(!id){document.getElementById('zeitenContent').style.display='none';document.getElementById('zeitenHint').style.display='block';return;}
+  document.getElementById('zeitenContent').style.display='block';
+  document.getElementById('zeitenHint').style.display='none';
+  try {
+    const r=await fetch(API+'/rennen/'+id+'/teilnehmer');
+    const teilnehmer=await r.json();
+    const opts='<option value="">— Fahrer wählen —</option>'+teilnehmer.map(t=>`<option value="${t.id}">#${t.startnummer} ${escHtml(t.name)}</option>`).join('');
+    ['zeitFahrer','strafFahrer'].forEach(sid=>document.getElementById(sid).innerHTML=opts);
+  } catch{}
+  loadZeitenUebersicht();
+}
+
+async function doZeit() {
+  const s=getSession();
+  const fahrer=parseInt(document.getElementById('zeitFahrer').value)||null;
+  const sek=parseFloat(document.getElementById('zeitSek').value);
+  const straf=parseFloat(document.getElementById('zeitStraf').value)||0;
+  if(!fahrer||!sek||sek<=0) return showAlert('zeitAlert','Fahrer und Rundenzeit angeben.','err');
+  try{const r=await fetch(API+'/zeiten',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.token},body:JSON.stringify({fahrer_id:fahrer,rennen_id:zeitenRennenId,rundenzeit:sek,strafzeit:straf})});const d=await r.json();if(!r.ok)return showAlert('zeitAlert',d.detail,'err');showAlert('zeitAlert','Zeit eingetragen: '+fmtZeit(d.gesamtzeit),'ok');document.getElementById('zeitSek').value='';document.getElementById('zeitStraf').value='0';loadZeitenUebersicht();}catch{showAlert('zeitAlert','Fehler.','err');}
+}
+
+async function doStraf() {
+  const s=getSession();
+  const fahrer=parseInt(document.getElementById('strafFahrer').value)||null;
+  const sel=document.getElementById('strafGrund');
+  const grund=sel.value;
+  const sek=STRAF_MAP[grund]||5;
+  if(!fahrer||!grund) return showAlert('strafAlert','Fahrer und Vergehen wählen.','err');
+  try{const r=await fetch(API+'/strafzeiten',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.token},body:JSON.stringify({fahrer_id:fahrer,rennen_id:zeitenRennenId,strafzeit:sek,grund})});const d=await r.json();if(!r.ok)return showAlert('strafAlert',d.detail,'err');showAlert('strafAlert',d.message,'ok');sel.value='';document.getElementById('strafPreview').style.display='none';loadZeitenUebersicht();}catch{showAlert('strafAlert','Fehler.','err');}
+}
+
+function updateStrafPreview() {
+  const sel=document.getElementById('strafGrund');
+  const prev=document.getElementById('strafPreview');
+  if(!sel.value){prev.style.display='none';return;}
+  const sek=STRAF_MAP[sel.value]||5;
+  prev.textContent=`Strafzeit: +${sek}s für "${sel.value}"`;
+  prev.style.display='block';
+}
+
+async function loadZeitenUebersicht() {
+  if(!zeitenRennenId)return;
+  try{
+    const r=await fetch(API+'/rennen/'+zeitenRennenId+'/leaderboard');
+    const data=await r.json();
+    const el=document.getElementById('zeitenUebersicht');
+    if(!data.length){el.innerHTML='<p style="color:var(--dim);font-size:13px">Noch keine Zeiten.</p>';return;}
+    el.innerHTML=`<table class="table">
+      <thead><tr><th>Platz</th><th>Fahrer</th><th>Fahrzeug</th><th>Läufe</th><th>Beste Runde</th><th>Strafe</th><th>Gesamt</th></tr></thead>
+      <tbody>${data.map((f,i)=>`<tr>
+        <td style="font-weight:800;color:${i===0?'var(--gold)':i===1?'#94A3B8':i===2?'#CD7F32':'var(--muted)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1+'.'}</td>
+        <td style="font-weight:700">${escHtml(f.name)}</td>
+        <td style="color:var(--muted)">${escHtml(f.fahrzeug)}</td>
+        <td style="color:var(--muted)">${f.anzahl_laeufe}</td>
+        <td class="zeit-mono">${fmtZeit(f.beste_rundenzeit)}</td>
+        <td style="color:${f.gesamt_strafzeit>0?'var(--red)':'var(--dim)'}">${f.gesamt_strafzeit>0?'+'+f.gesamt_strafzeit+'s':'—'}</td>
+        <td class="zeit-mono">${fmtZeit(f.beste_gesamtzeit)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch{document.getElementById('zeitenUebersicht').innerHTML='<p style="color:var(--dim);font-size:13px">Fehler beim Laden.</p>';}
+}
+
+// ── Init ──
+(async () => {
+  const s=getSession();
+  if(!s?.token){document.getElementById('denied').style.display='block';return;}
+  try{
+    const r=await fetch(API+'/auth/me',{headers:{Authorization:'Bearer '+s.token}});
+    if(!r.ok){clearSession();document.getElementById('denied').style.display='block';return;}
+    const me=await r.json();
+    if(me.rolle!=='admin'){document.getElementById('denied').style.display='block';return;}
+    document.getElementById('navName').textContent=me.name;
+    document.getElementById('navAvatar').textContent=me.name.charAt(0).toUpperCase();
+    document.getElementById('mainPage').style.display='block';
+    loadRennenList();
+  }catch{document.getElementById('denied').style.display='block';}
+})();
+</script>
+</body>
+</html>

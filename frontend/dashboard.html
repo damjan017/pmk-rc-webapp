@@ -3,483 +3,633 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RC-Car Rally — Rennleiter Dashboard</title>
+<title>PMK RC-Car Rally — Admin Dashboard</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F0F0; min-height: 100vh; display: flex; flex-direction: column; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #111827;
+  color: #F9FAFB;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-  /* ── Top-Navigation ── */
-  .topnav {
-    background: #1E1E1E;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    flex-shrink: 0;
-  }
-  .topnav-brand { display: flex; align-items: center; gap: 10px; color: white; font-weight: 700; font-size: 15px; text-decoration: none; }
-  .topnav-brand span { color: #C8A415; }
-  .topnav-links { display: flex; gap: 4px; }
-  .topnav-links a { color: #AAA; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: background 0.15s, color 0.15s; }
-  .topnav-links a:hover { background: #2E2E2E; color: white; }
-  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+/* ── Access denied overlay ── */
+#accessDenied {
+  display: none;
+  position: fixed; inset: 0;
+  background: #111827;
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  padding: 40px;
+}
+#accessDenied .icon { font-size: 56px; }
+#accessDenied h2 { font-size: 20px; color: #FCA5A5; }
+#accessDenied p { color: #64748B; font-size: 14px; }
 
-  /* ── Layout ── */
-  .page-body { flex: 1; padding: 24px 20px; max-width: 960px; margin: 0 auto; width: 100%; }
-  .page-heading { margin-bottom: 20px; }
-  .page-heading h1 { font-size: 20px; font-weight: 800; color: #1E1E1E; }
-  .page-heading p { font-size: 13px; color: #999; margin-top: 3px; }
+/* ── Top-Bar ── */
+.topbar {
+  background: #0F172A;
+  border-bottom: 1px solid #1E293B;
+  padding: 0 24px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.brand { font-size: 15px; font-weight: 800; color: #F9FAFB; }
+.brand em { color: #C8A415; font-style: normal; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.admin-badge { background: #C8A415; color: #111827; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+.user-name { font-size: 13px; color: #94A3B8; }
+.btn-sm {
+  background: none; border: 1px solid #334155; color: #94A3B8;
+  font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  text-decoration: none; display: inline-block; transition: border-color 0.15s, color 0.15s;
+}
+.btn-sm:hover { border-color: #C8A415; color: #C8A415; }
 
-  .status-banner {
-    display: none; margin-bottom: 18px;
-    padding: 12px 18px; border-radius: 10px;
-    font-weight: 700; font-size: 13px;
-  }
-  .status-banner.offen { background: #E8F5E9; color: #2E7D32; border: 1.5px solid #A5D6A7; }
-  .status-banner.geschlossen { background: #FFF0F0; color: #C62828; border: 1.5px solid #FFCDD2; }
+/* ── Status Banner ── */
+.status-banner {
+  display: none;
+  padding: 11px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.status-banner.offen { background: #14532D; color: #86EFAC; border-bottom: 1px solid #166534; }
+.status-banner.geschlossen { background: #1C1917; color: #F97316; border-bottom: 1px solid #431407; }
 
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .card { background: white; border-radius: 14px; box-shadow: 0 3px 16px rgba(0,0,0,0.07); padding: 22px; }
-  .card.full { grid-column: 1 / -1; }
-  .card h2 { font-size: 14px; font-weight: 800; color: #1E1E1E; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #C8A415; display: flex; align-items: center; gap: 8px; }
+/* ── Layout ── */
+.page { flex: 1; padding: 24px 20px; max-width: 980px; margin: 0 auto; width: 100%; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.full { grid-column: 1 / -1; }
 
-  label { display: block; font-size: 11px; font-weight: 700; color: #777; margin-bottom: 5px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.4px; }
-  label:first-of-type { margin-top: 0; }
-  input[type="number"], input[type="text"], select {
-    width: 100%; padding: 9px 12px; border: 1.5px solid #E8E8E8; border-radius: 8px;
-    font-size: 14px; color: #1E1E1E; outline: none; transition: border-color 0.2s; background: #FAFAFA;
-  }
-  input:focus, select:focus { border-color: #C8A415; background: white; }
+/* ── Cards ── */
+.card {
+  background: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 20px;
+}
+.card-title {
+  font-size: 13px; font-weight: 800; color: #F9FAFB;
+  margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 2px solid #C8A415;
+  display: flex; align-items: center; gap: 8px;
+}
 
-  .btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; transition: opacity 0.2s, transform 0.1s; }
-  .btn:hover { opacity: 0.88; }
-  .btn:active { transform: scale(0.99); }
-  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-  .btn-dark { background: #1E1E1E; color: white; }
-  .btn-gold { background: #C8A415; color: white; }
-  .btn-red { background: #C62828; color: white; }
-  .btn-green { background: #2E7D32; color: white; }
-  .btn-outline { background: white; color: #555; border: 1.5px solid #E0E0E0; }
+/* ── Forms ── */
+.field { margin-bottom: 12px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 700; color: #64748B;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px;
+}
+.field input, .field select {
+  width: 100%; padding: 9px 12px;
+  background: #0F172A; border: 1.5px solid #334155; border-radius: 8px;
+  font-size: 13px; color: #F9FAFB; outline: none; transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus { border-color: #C8A415; }
+.field input::placeholder { color: #374151; }
+.field select option { background: #0F172A; }
 
-  .msg { display: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; font-weight: 600; }
-  .msg.ok { background: #E8F5E9; color: #2E7D32; }
-  .msg.err { background: #FFF0F0; color: #C62828; }
+/* ── Buttons ── */
+.btn {
+  width: 100%; padding: 10px; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s; margin-top: 4px;
+}
+.btn:active { transform: scale(0.99); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.btn-gold   { background: #C8A415; color: #111827; }
+.btn-blue   { background: #1E3A5F; color: #93C5FD; }
+.btn-red    { background: #7F1D1D; color: #FCA5A5; }
+.btn-green  { background: #14532D; color: #86EFAC; }
+.btn-dark   { background: #0F172A; color: #F9FAFB; border: 1px solid #334155; }
+.btn-orange { background: #431407; color: #F97316; }
 
-  /* Strafzeiten */
-  .straf-preview { display: none; margin-top: 10px; padding: 11px 14px; background: #FFFBEB; border-radius: 8px; border: 1.5px solid #F0D060; font-size: 13px; color: #5C4000; }
-  .straf-preview strong { font-size: 17px; color: #C62828; }
-  .straf-liste { font-size: 12px; color: #999; }
-  .straf-liste-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #F5F5F5; }
-  .straf-liste-item:last-child { border: none; }
-  .straf-sek { font-weight: 700; color: #C62828; font-family: monospace; }
+/* ── Messages ── */
+.msg {
+  display: none; padding: 9px 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; margin-top: 10px;
+}
+.msg.ok  { background: #14532D; color: #86EFAC; }
+.msg.err { background: #7F1D1D; color: #FCA5A5; }
 
-  /* Fahrerübersicht */
-  .fahrer-search {
-    display: flex; gap: 8px; margin-bottom: 14px;
-  }
-  .fahrer-search input {
-    flex: 1; padding: 9px 12px; border: 1.5px solid #E8E8E8; border-radius: 8px;
-    font-size: 13px; outline: none; background: #FAFAFA;
-  }
-  .fahrer-search input:focus { border-color: #C8A415; background: white; }
-  .fahrer-item { border: 1.5px solid #F0F0F0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s; }
-  .fahrer-item:hover { border-color: #C8A415; }
-  .fahrer-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; background: white; }
-  .fahrer-name { font-weight: 700; color: #1E1E1E; font-size: 14px; }
-  .fahrer-info { font-size: 12px; color: #999; margin-top: 2px; }
-  .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
-  .badge.ok { background: #E8F5E9; color: #2E7D32; }
-  .badge.nein { background: #F5F5F5; color: #AAA; }
-  .qr-panel { display: none; background: #FAFAFA; border-top: 1.5px solid #F0F0F0; padding: 16px; }
-  .qr-panel-inner { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-  .qr-panel img { width: 140px; height: 140px; border-radius: 8px; border: 1.5px solid #E0E0E0; background: white; padding: 6px; flex-shrink: 0; }
-  .qr-zeiten { flex: 1; min-width: 180px; }
-  .qr-zeiten h4 { font-size: 12px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
-  .qr-zeit-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #EEEEEE; font-size: 12px; color: #666; }
-  .qr-zeit-row:last-child { border: none; }
-  .qr-zeit-val { font-family: monospace; font-weight: 700; color: #1E1E1E; }
-  .qr-zeit-best { color: #C8A415; font-weight: 700; font-size: 13px; margin-top: 6px; }
-  .chevron { transition: transform 0.2s; color: #CCC; font-size: 11px; margin-left: 6px; }
-  .chevron.open { transform: rotate(180deg); }
+/* ── Straf Preview ── */
+.straf-preview {
+  display: none; padding: 9px 12px; background: #162032;
+  border: 1px solid #1E3A5F; border-radius: 8px;
+  font-size: 12px; color: #93C5FD; margin: 8px 0;
+}
+.straf-preview strong { color: #FCA5A5; font-size: 16px; }
 
-  /* Abschluss-Box */
-  .abschluss-box { border: 2px solid #FFCDD2; border-radius: 12px; padding: 18px; text-align: center; background: #FFF8F8; }
-  .abschluss-box p { font-size: 13px; color: #666; margin-bottom: 14px; line-height: 1.5; }
+/* ── Straf Referenz ── */
+.straf-ref { font-size: 11px; }
+.straf-ref-row {
+  display: flex; justify-content: space-between;
+  padding: 5px 0; border-bottom: 1px solid #1E293B;
+  color: #475569;
+}
+.straf-ref-row:last-child { border: none; }
+.straf-sek { font-weight: 700; color: #F97316; font-family: monospace; }
 
-  @media (max-width: 640px) {
-    .grid { grid-template-columns: 1fr; }
-    .card.full { grid-column: 1; }
-    .topnav-links a { padding: 6px 8px; font-size: 12px; }
-  }
+/* ── Fahrer Liste ── */
+.fahrer-search input {
+  width: 100%; padding: 9px 12px; background: #0F172A; border: 1.5px solid #334155;
+  border-radius: 8px; font-size: 13px; color: #F9FAFB; outline: none;
+  margin-bottom: 14px; transition: border-color 0.2s;
+}
+.fahrer-search input:focus { border-color: #C8A415; }
+.fahrer-search input::placeholder { color: #374151; }
+
+.fahrer-item { border: 1px solid #334155; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.fahrer-item:hover { border-color: #4B5563; }
+.fahrer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; cursor: pointer; background: #1E293B; transition: background 0.12s;
+}
+.fahrer-row:hover { background: #243347; }
+.fahrer-name { font-weight: 700; font-size: 13px; color: #F9FAFB; }
+.fahrer-sub  { font-size: 11px; color: #64748B; margin-top: 2px; }
+.fahrer-badges { display: flex; align-items: center; gap: 6px; }
+.badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+}
+.badge-ok    { background: #14532D; color: #86EFAC; }
+.badge-nein  { background: #1E293B; color: #475569; border: 1px solid #334155; }
+.chevron { color: #475569; font-size: 10px; transition: transform 0.2s; margin-left: 4px; }
+.chevron.open { transform: rotate(180deg); }
+
+.fahrer-panel {
+  display: none;
+  background: #162032;
+  border-top: 1px solid #334155;
+  padding: 16px;
+}
+.panel-inner { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.panel-inner img {
+  width: 130px; height: 130px; border-radius: 8px;
+  border: 2px solid #334155; background: #0F172A; padding: 4px; flex-shrink: 0;
+}
+.panel-zeiten { flex: 1; min-width: 160px; }
+.panel-zeiten h4 {
+  font-size: 11px; font-weight: 700; color: #64748B;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px;
+}
+.z-row {
+  display: flex; justify-content: space-between;
+  padding: 5px 0; border-bottom: 1px solid #1E293B; font-size: 12px;
+}
+.z-row:last-child { border: none; }
+.z-label { color: #64748B; }
+.z-val   { color: #F9FAFB; font-family: monospace; font-weight: 700; }
+.z-best  { color: #C8A415; font-weight: 800; font-size: 14px; margin-top: 8px; text-align: right; font-family: monospace; }
+
+/* ── Abschluss Box ── */
+.abschluss-box {
+  border: 1px solid #431407;
+  background: #1C0F0A;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.abschluss-box p { font-size: 13px; color: #64748B; margin-bottom: 14px; line-height: 1.5; }
+
+/* ── Quick Links ── */
+.quick-links { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.quick-link {
+  display: block; text-align: center; padding: 11px;
+  border-radius: 8px; font-weight: 700; font-size: 13px;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.quick-link:hover { opacity: 0.85; }
+.ql-dark   { background: #0F172A; color: #F9FAFB; border: 1px solid #334155; }
+.ql-gold   { background: #C8A415; color: #111827; }
+.ql-blue   { background: #1E3A5F; color: #93C5FD; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .full { grid-column: 1; }
+  .topbar { padding: 0 14px; }
+  .page { padding: 16px 14px; }
+}
 </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
-  <div class="topnav-links">
-    <a href="index.html">Registrierung</a>
-    <a href="leaderboard.html">Leaderboard</a>
-    <a href="dashboard.html" class="active">Dashboard</a>
-    <a href="kamera.html">Kamera</a>
+<!-- Access Denied -->
+<div id="accessDenied">
+  <div class="icon">🔒</div>
+  <h2>Kein Zugriff</h2>
+  <p>Dieses Dashboard ist nur für Admins zugänglich.</p>
+  <a href="portal.html" style="color:#C8A415;font-size:14px;font-weight:600;text-decoration:none;margin-top:8px">← Zum Portal</a>
+</div>
+
+<!-- Top-Bar -->
+<div class="topbar">
+  <div class="brand">🏁 PMK RC-Car <em>Rally</em> <span style="color:#64748B;font-size:12px;font-weight:400;margin-left:8px">Admin-Dashboard</span></div>
+  <div class="topbar-right">
+    <span class="admin-badge">ADMIN</span>
+    <span class="user-name" id="adminName"></span>
+    <a href="leaderboard.html" class="btn-sm">📊 Leaderboard</a>
+    <a href="portal.html" class="btn-sm">← Portal</a>
   </div>
-</nav>
+</div>
 
-<div class="page-body">
+<!-- Status Banner -->
+<div class="status-banner" id="statusBanner"></div>
 
-  <div class="page-heading">
-    <h1>⚙️ Rennleiter-Dashboard</h1>
-    <p>RC-Car Rally 2026 — PMK</p>
-  </div>
-
-  <div class="status-banner" id="statusBanner"></div>
-
+<!-- Page -->
+<div class="page">
   <div class="grid">
 
     <!-- Zeit eintragen -->
     <div class="card">
-      <h2>⏱️ Zeit eintragen</h2>
-      <label>Fahrer-ID</label>
-      <input type="number" id="zeitFahrerId" placeholder="z.B. 1" min="1">
-      <label>Rundenzeit (Sekunden)</label>
-      <input type="number" id="rundenzeit" placeholder="z.B. 45.3" step="0.01">
-      <button class="btn btn-dark" id="btnZeit" onclick="zeitEintragen()">Zeit speichern</button>
+      <div class="card-title">⏱️ Zeit eintragen</div>
+      <div class="field">
+        <label>Fahrer-ID</label>
+        <input type="number" id="zeitFahrerId" placeholder="z.B. 3" min="1">
+      </div>
+      <div class="field">
+        <label>Rundenzeit (Sekunden)</label>
+        <input type="number" id="zeitRunde" placeholder="z.B. 47.83" step="0.01" min="0">
+      </div>
+      <button class="btn btn-blue" id="btnZeit" onclick="adminZeit()">Zeit speichern</button>
       <div class="msg" id="zeitMsg"></div>
     </div>
 
     <!-- Check-in -->
     <div class="card">
-      <h2>✅ Fahrer Check-in</h2>
-      <label>Fahrer-ID (vom QR-Code)</label>
-      <input type="number" id="checkinId" placeholder="z.B. 1" min="1">
-      <button class="btn btn-gold" onclick="checkin()">Fahrer einchecken</button>
+      <div class="card-title">✅ Fahrer Check-in</div>
+      <div class="field">
+        <label>Fahrer-ID (von QR-Code)</label>
+        <input type="number" id="checkinId" placeholder="z.B. 3" min="1">
+      </div>
+      <button class="btn btn-green" onclick="adminCheckin()">Fahrer einchecken</button>
       <div class="msg" id="checkinMsg"></div>
     </div>
 
-    <!-- Strafzeiten -->
+    <!-- Strafzeit -->
     <div class="card full">
-      <h2>⚠️ Strafzeit eintragen</h2>
+      <div class="card-title">⚠️ Strafzeit eintragen</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div>
-          <label>Fahrer-ID</label>
-          <input type="number" id="strafFahrerId" placeholder="z.B. 1" min="1">
-          <label>Vergehen auswählen</label>
-          <select id="strafVergehen" onchange="vergehenGewaehlt()">
-            <option value="">-- Vergehen auswählen --</option>
-            <optgroup label="Tor / Zeitnahme">
-              <option value="15|Berührung der Zeitnahme / Tor (Verschieben / Streifen)">🚧 Tor berührt / verschoben / gestreift — +15 Sek.</option>
-            </optgroup>
-            <optgroup label="Frühstart">
-              <option value="10|Frühstart (bis 5 Sekunden zu früh)">🚦 Frühstart bis 5 Sek. zu früh — +10 Sek.</option>
-              <option value="20|Frühstart (mehr als 5 Sekunden zu früh)">🚦 Frühstart mehr als 5 Sek. zu früh — +20 Sek.</option>
-            </optgroup>
-            <optgroup label="Service">
-              <option value="10|Unerlaubter Service im Servicebereich (gemeldet)">🔧 Unerlaubter Service (gemeldet) — +10 Sek.</option>
-              <option value="60|Unerlaubter Service im Servicebereich (nicht gemeldet / Batteriewechsel)">🔧 Unerlaubter Service (nicht gemeldet / Akku) — +60 Sek.</option>
-            </optgroup>
-            <optgroup label="Fahrzeug">
-              <option value="30|Auto mit Fuß bewegt (gekickt)">👟 Auto mit Fuß bewegt / gekickt — +30 Sek.</option>
-              <option value="10|Zurücksetzen auf Strecke falsch (nach Streckenverlassen)">↩️ Falsches Zurücksetzen nach Streckenverlassen — +10 Sek.</option>
-            </optgroup>
-            <optgroup label="Verhalten & Strecke">
-              <option value="30|Unsportliches Verhalten / Abkürzen / Überholen blockieren">😤 Unsportliches Verhalten / Abkürzen / Blockieren — +30 Sek.</option>
-              <option value="30|Technisches Element ausgelassen oder falsch gefahren">🔁 Tech. Element ausgelassen / falsch gefahren — +30 Sek.</option>
-            </optgroup>
-            <optgroup label="Startbereich">
-              <option value="60|Zu spät zum Startbereich">⏰ Zu spät zum Startbereich — +60 Sek.</option>
-            </optgroup>
-          </select>
-          <div class="straf-preview" id="strafPreview">
-            Vergehen: <span id="previewGrund"></span><br>
-            Strafzeit: <strong id="previewSek"></strong> Sekunden
+          <div class="field">
+            <label>Fahrer-ID</label>
+            <input type="number" id="strafFahrerId" placeholder="z.B. 3" min="1">
           </div>
-          <button class="btn btn-red" id="btnStraf" onclick="strafzeit()">Strafzeit eintragen</button>
+          <div class="field">
+            <label>Vergehen</label>
+            <select id="strafSelect" onchange="strafPreview()">
+              <option value="">— Vergehen auswählen —</option>
+              <optgroup label="Tor / Zeitnahme">
+                <option value="15|Berührung der Zeitnahme / Tor (Verschieben / Streifen)">🚧 Tor berührt / verschoben — +15s</option>
+              </optgroup>
+              <optgroup label="Frühstart">
+                <option value="10|Frühstart (bis 5 Sek. zu früh)">🚦 Frühstart bis 5 Sek. — +10s</option>
+                <option value="20|Frühstart (mehr als 5 Sek. zu früh)">🚦 Frühstart mehr als 5 Sek. — +20s</option>
+              </optgroup>
+              <optgroup label="Service">
+                <option value="10|Unerlaubter Service (gemeldet)">🔧 Unerlaubter Service (gemeldet) — +10s</option>
+                <option value="60|Unerlaubter Service (nicht gemeldet / Akkuwechsel)">🔧 Unerlaubter Service (Akku) — +60s</option>
+              </optgroup>
+              <optgroup label="Fahrzeug">
+                <option value="30|Auto mit Fuß bewegt (gekickt)">👟 Auto mit Fuß bewegt — +30s</option>
+                <option value="10|Falsches Zurücksetzen nach Streckenverlassen">↩️ Falsches Zurücksetzen — +10s</option>
+              </optgroup>
+              <optgroup label="Verhalten">
+                <option value="30|Unsportliches Verhalten / Abkürzen / Blockieren">😤 Unsportliches Verhalten — +30s</option>
+                <option value="30|Technisches Element ausgelassen / falsch gefahren">🔁 Tech. Element ausgelassen — +30s</option>
+              </optgroup>
+              <optgroup label="Startbereich">
+                <option value="60|Zu spät zum Startbereich">⏰ Zu spät zum Start — +60s</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="straf-preview" id="strafPreviewBox">
+            <span id="strafGrundText"></span><br>
+            Strafzeit: <strong id="strafSekText"></strong>
+          </div>
+          <button class="btn btn-red" id="btnStraf" onclick="adminStraf()">Strafzeit eintragen</button>
           <div class="msg" id="strafMsg"></div>
         </div>
         <div>
-          <p style="font-size:11px;font-weight:700;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px">Strafzeiten-Übersicht</p>
-          <div class="straf-liste">
-            <div class="straf-liste-item"><span>Tor berührt / verschoben</span><span class="straf-sek">+15s</span></div>
-            <div class="straf-liste-item"><span>Frühstart bis 5 Sek.</span><span class="straf-sek">+10s</span></div>
-            <div class="straf-liste-item"><span>Frühstart mehr als 5 Sek.</span><span class="straf-sek">+20s</span></div>
-            <div class="straf-liste-item"><span>Unerlaubter Service (gemeldet)</span><span class="straf-sek">+10s</span></div>
-            <div class="straf-liste-item"><span>Unerlaubter Service (nicht gemeldet)</span><span class="straf-sek">+60s</span></div>
-            <div class="straf-liste-item"><span>Auto mit Fuß bewegt</span><span class="straf-sek">+30s</span></div>
-            <div class="straf-liste-item"><span>Falsches Zurücksetzen</span><span class="straf-sek">+10s</span></div>
-            <div class="straf-liste-item"><span>Unsportliches Verhalten / Abkürzen</span><span class="straf-sek">+30s</span></div>
-            <div class="straf-liste-item"><span>Tech. Element ausgelassen</span><span class="straf-sek">+30s</span></div>
-            <div class="straf-liste-item"><span>Zu spät zum Startbereich</span><span class="straf-sek">+60s</span></div>
+          <p style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px">Strafzeiten-Referenz</p>
+          <div class="straf-ref">
+            <div class="straf-ref-row"><span>Tor berührt / verschoben</span><span class="straf-sek">+15s</span></div>
+            <div class="straf-ref-row"><span>Frühstart bis 5 Sek.</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-ref-row"><span>Frühstart mehr als 5 Sek.</span><span class="straf-sek">+20s</span></div>
+            <div class="straf-ref-row"><span>Unerlaubter Service (gemeldet)</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-ref-row"><span>Unerlaubter Service (Akku)</span><span class="straf-sek">+60s</span></div>
+            <div class="straf-ref-row"><span>Auto mit Fuß bewegt</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-ref-row"><span>Falsches Zurücksetzen</span><span class="straf-sek">+10s</span></div>
+            <div class="straf-ref-row"><span>Unsportliches Verhalten</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-ref-row"><span>Tech. Element ausgelassen</span><span class="straf-sek">+30s</span></div>
+            <div class="straf-ref-row"><span>Zu spät zum Startbereich</span><span class="straf-sek">+60s</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Rennen abschließen -->
+    <!-- Rennen & Links -->
     <div class="card full">
-      <h2>🏁 Rennen & Ergebnisse</h2>
+      <div class="card-title">🏁 Rennen-Steuerung & Links</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div class="abschluss-box">
-          <p>Wenn alle Läufe gefahren sind, das Rennen abschließen. Danach können keine neuen Zeiten oder Strafzeiten mehr eingetragen werden.</p>
-          <button class="btn btn-red" id="btnAbschluss" onclick="rennAbschliessen()">
-            🏁 Rennen abschließen
-          </button>
-          <button class="btn btn-outline" id="btnReset" onclick="rennReset()" style="display:none;margin-top:8px">
-            ↺ Rennen wieder öffnen
-          </button>
+          <p>Wenn alle Läufe gefahren sind, Rennen abschließen. Danach sind keine neuen Zeiten möglich.</p>
+          <button class="btn btn-red" id="btnAbschluss" onclick="adminAbschluss()">🏁 Rennen abschließen</button>
+          <button class="btn btn-dark" id="btnReset" onclick="adminReset()" style="display:none;margin-top:8px">↺ Rennen wieder öffnen</button>
           <div class="msg" id="abschlussMsg"></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:10px;justify-content:center">
-          <a href="#" onclick="window.open(API+'/ergebnisse/pdf','_blank');return false;"
-            style="display:block;text-align:center;padding:12px;background:#1E1E1E;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
-            🖨️ Ergebnisliste öffnen & drucken
-          </a>
-          <a href="leaderboard.html" target="_blank"
-            style="display:block;text-align:center;padding:12px;background:#C8A415;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
-            📊 Live-Leaderboard öffnen
-          </a>
-          <a href="/simulator" target="_blank"
-            style="display:block;text-align:center;padding:12px;background:#0f3460;color:white;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
-            📷 Mehrtor-Simulator öffnen
-          </a>
+        <div class="quick-links">
+          <a href="/ergebnisse/pdf" target="_blank" class="quick-link ql-dark">🖨️ Ergebnisliste drucken</a>
+          <a href="leaderboard.html" target="_blank" class="quick-link ql-gold">📊 Live-Leaderboard</a>
+          <a href="/simulator" target="_blank" class="quick-link ql-blue">📷 Kamera-Simulator</a>
         </div>
       </div>
     </div>
 
-    <!-- Fahrerübersicht -->
+    <!-- Fahrer-Übersicht -->
     <div class="card full">
-      <h2>👥 Alle Fahrer & QR-Codes
-        <button onclick="faehrerLaden()"
-          style="margin-left:auto;background:none;border:1.5px solid #E0E0E0;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#666;font-weight:600">
-          ↻ Aktualisieren
-        </button>
-      </h2>
-      <div class="fahrer-search">
-        <input type="text" id="fahrerSuche" placeholder="🔍 Fahrer suchen (Name, Fahrzeug, Startnr.)..." oninput="fahrerFiltern()">
+      <div class="card-title">
+        👥 Alle Fahrer
+        <span id="fahrerCount" style="color:#64748B;font-size:12px;font-weight:400;margin-left:4px"></span>
+        <button onclick="loadFahrer()" style="margin-left:auto;background:none;border:1px solid #334155;color:#64748B;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-weight:600">↻ Laden</button>
       </div>
-      <div id="fahrerListe"><p style="color:#AAA;font-size:14px">Wird geladen...</p></div>
+      <div class="fahrer-search">
+        <input type="text" id="fahrerSuche" placeholder="🔍 Suchen nach Name, Fahrzeug, ID..." oninput="fahrerFiltern()">
+      </div>
+      <div id="fahrerListe"><p style="color:#64748B;font-size:13px">Wird geladen...</p></div>
     </div>
 
   </div>
 </div>
 
 <script>
-const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
-let rennOffen = true;
+const API = window.location.origin;
+
+// ── Auth-Check ─────────────────────────────────────────────────
+let token = null;
 let alleFahrer = [];
 
-function vergehenGewaehlt() {
-  const sel = document.getElementById('strafVergehen').value;
-  const preview = document.getElementById('strafPreview');
-  if (!sel) { preview.style.display = 'none'; return; }
-  const [sek, grund] = sel.split('|');
-  document.getElementById('previewGrund').textContent = grund;
-  document.getElementById('previewSek').textContent = '+' + sek;
-  preview.style.display = 'block';
-}
+(function checkAuth() {
+  const raw = localStorage.getItem('rally_session');
+  let sess = null;
+  try { sess = raw ? JSON.parse(raw) : null; } catch(e) {}
 
-function showMsg(id, text, ok) {
-  const el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'msg ' + (ok ? 'ok' : 'err');
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
-}
+  if (!sess || sess.rolle !== 'admin') {
+    document.getElementById('accessDenied').style.display = 'flex';
+    document.querySelector('.topbar').style.display = 'none';
+    document.getElementById('statusBanner').style.display = 'none';
+    document.querySelector('.page').style.display = 'none';
+    return;
+  }
 
-async function statusLaden() {
+  token = sess.token;
+  document.getElementById('adminName').textContent = sess.name;
+
+  // Verify token
+  fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => {
+      if (d.rolle !== 'admin') throw new Error('not admin');
+      loadStatus();
+      loadFahrer();
+    })
+    .catch(() => {
+      document.getElementById('accessDenied').style.display = 'flex';
+      document.querySelector('.topbar').style.display = 'none';
+      document.querySelector('.page').style.display = 'none';
+    });
+})();
+
+// ── Status ─────────────────────────────────────────────────────
+async function loadStatus() {
   try {
-    const res = await fetch('' + API + '/status');
-    const data = await res.json();
-    rennOffen = !data.abgeschlossen;
+    const r = await fetch(API + '/status');
+    const d = await r.json();
     const banner = document.getElementById('statusBanner');
-    const btnAbschluss = document.getElementById('btnAbschluss');
-    const btnReset = document.getElementById('btnReset');
-    const btnZeit = document.getElementById('btnZeit');
-    const btnStraf = document.getElementById('btnStraf');
+    const btnA = document.getElementById('btnAbschluss');
+    const btnR = document.getElementById('btnReset');
+    const btnZ = document.getElementById('btnZeit');
+    const btnS = document.getElementById('btnStraf');
 
-    if (data.abgeschlossen) {
-      banner.textContent = `🏁 Rennen abgeschlossen — ${data.abgeschlossen_um} — Keine neuen Einträge möglich`;
+    if (d.abgeschlossen) {
+      banner.textContent = `🏁 Rennen abgeschlossen — ${d.abgeschlossen_um} — Keine neuen Einträge möglich`;
       banner.className = 'status-banner geschlossen';
-      btnAbschluss.style.display = 'none';
-      btnReset.style.display = 'block';
-      btnZeit.disabled = true;
-      btnStraf.disabled = true;
+      btnA.style.display = 'none';
+      btnR.style.display = 'block';
+      btnZ.disabled = btnS.disabled = true;
     } else {
       banner.textContent = '🟢 Rennen läuft — Zeiten und Strafzeiten können eingetragen werden';
       banner.className = 'status-banner offen';
-      btnAbschluss.style.display = 'block';
-      btnReset.style.display = 'none';
-      btnZeit.disabled = false;
-      btnStraf.disabled = false;
+      btnA.style.display = 'block';
+      btnR.style.display = 'none';
+      btnZ.disabled = btnS.disabled = false;
     }
     banner.style.display = 'block';
   } catch(e) {}
 }
 
-function toggleQR(fahrerId) {
-  const panel = document.getElementById('qr-' + fahrerId);
-  const chevron = document.getElementById('chev-' + fahrerId);
-  const img = document.getElementById('qrimg-' + fahrerId);
-  const isOpen = panel.style.display === 'block';
-  panel.style.display = isOpen ? 'none' : 'block';
-  chevron.classList.toggle('open', !isOpen);
-  if (!isOpen) {
-    if (!img.src || img.src === window.location.href) {
-      img.src = `${API}/fahrer/${fahrerId}/qrcode`;
-    }
-    zeitenFuerFahrer(fahrerId);
-  }
-}
-
-async function zeitenFuerFahrer(fahrerId) {
+// ── Fahrer laden ───────────────────────────────────────────────
+async function loadFahrer() {
   try {
-    const res = await fetch(`${API}/zeiten/${fahrerId}`);
-    const zeiten = await res.json();
-    const box = document.getElementById('zeiten-' + fahrerId);
-    if (!box) return;
-    if (zeiten.length === 0) {
-      box.innerHTML = '<p style="color:#AAA;font-size:12px">Noch keine Zeiten.</p>';
-      return;
-    }
-    const beste = Math.min(...zeiten.map(z => z.gesamtzeit));
-    box.innerHTML =
-      zeiten.map((z, i) => `
-        <div class="qr-zeit-row">
-          <span>Lauf ${i+1}</span>
-          <span class="qr-zeit-val">${z.gesamtzeit.toFixed(2)}s</span>
-        </div>`).join('') +
-      `<div class="qr-zeit-best">⭐ Beste: ${beste.toFixed(2)}s</div>`;
-  } catch(e) {}
+    const r = await fetch(API + '/fahrer');
+    alleFahrer = await r.json();
+    document.getElementById('fahrerCount').textContent = `(${alleFahrer.length})`;
+    fahrerFiltern();
+  } catch(e) {
+    document.getElementById('fahrerListe').innerHTML = '<p style="color:#FCA5A5;font-size:13px">Server nicht erreichbar.</p>';
+  }
 }
 
 function fahrerFiltern() {
   const q = document.getElementById('fahrerSuche').value.toLowerCase();
-  const gefiltert = q
+  const list = q
     ? alleFahrer.filter(f =>
         f.name.toLowerCase().includes(q) ||
         f.fahrzeug.toLowerCase().includes(q) ||
-        String(f.startnummer).includes(q) ||
-        f.email.toLowerCase().includes(q)
+        String(f.id).includes(q) ||
+        String(f.startnummer).includes(q)
       )
     : alleFahrer;
-  renderFahrer(gefiltert);
+  renderFahrer(list);
 }
 
 function renderFahrer(daten) {
-  const container = document.getElementById('fahrerListe');
-  if (daten.length === 0) {
-    container.innerHTML = '<p style="color:#AAA;font-size:14px">Keine Fahrer gefunden.</p>';
+  const box = document.getElementById('fahrerListe');
+  if (!daten.length) {
+    box.innerHTML = '<p style="color:#64748B;font-size:13px">Keine Fahrer gefunden.</p>';
     return;
   }
-  container.innerHTML = daten.map(f => `
+  box.innerHTML = daten.map(f => `
     <div class="fahrer-item">
-      <div class="fahrer-row" onclick="toggleQR(${f.id})">
+      <div class="fahrer-row" onclick="toggleFahrer(${f.id})">
         <div>
           <div class="fahrer-name">#${f.startnummer} — ${f.name}</div>
-          <div class="fahrer-info">${f.fahrzeug} · ${f.email} · ID: ${f.id}</div>
+          <div class="fahrer-sub">${f.fahrzeug} · ${f.email} · ID: ${f.id}</div>
         </div>
-        <div style="display:flex;align-items:center">
-          <span class="badge ${f.eingecheckt ? 'ok' : 'nein'}">${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}</span>
+        <div class="fahrer-badges">
+          <span class="badge ${f.eingecheckt ? 'badge-ok' : 'badge-nein'}">${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}</span>
           <span class="chevron" id="chev-${f.id}">▼</span>
         </div>
       </div>
-      <div class="qr-panel" id="qr-${f.id}">
-        <div class="qr-panel-inner">
-          <img id="qrimg-${f.id}" src="" alt="QR-Code">
-          <div class="qr-zeiten">
+      <div class="fahrer-panel" id="panel-${f.id}">
+        <div class="panel-inner">
+          <img id="qr-${f.id}" src="" alt="QR">
+          <div class="panel-zeiten">
             <h4>Zeiten</h4>
-            <div id="zeiten-${f.id}"><p style="color:#AAA;font-size:12px">Wird geladen...</p></div>
+            <div id="zeiten-${f.id}"><p style="color:#475569;font-size:12px">Wird geladen...</p></div>
           </div>
         </div>
       </div>
     </div>`).join('');
 }
 
-async function faehrerLaden() {
-  try {
-    const res = await fetch('' + API + '/fahrer');
-    alleFahrer = await res.json();
-    fahrerFiltern();
-  } catch(e) {
-    document.getElementById('fahrerListe').innerHTML =
-      '<p style="color:#C62828;font-size:14px">Server nicht erreichbar.</p>';
+function toggleFahrer(id) {
+  const panel = document.getElementById('panel-' + id);
+  const chev  = document.getElementById('chev-'  + id);
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  chev.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    const img = document.getElementById('qr-' + id);
+    if (!img.src || img.src === window.location.href) {
+      img.src = `${API}/fahrer/${id}/qrcode`;
+    }
+    loadFahrerZeiten(id);
   }
 }
 
-async function zeitEintragen() {
+async function loadFahrerZeiten(id) {
+  try {
+    const r = await fetch(`${API}/zeiten/${id}`);
+    const zeiten = await r.json();
+    const box = document.getElementById('zeiten-' + id);
+    if (!zeiten.length) {
+      box.innerHTML = '<p style="color:#475569;font-size:12px">Noch keine Zeiten.</p>';
+      return;
+    }
+    const besteRunde = Math.min(...zeiten.map(z => z.rundenzeit));
+    box.innerHTML =
+      zeiten.map((z, i) => `
+        <div class="z-row">
+          <span class="z-label">Lauf ${i+1}</span>
+          <span class="z-val">${z.rundenzeit.toFixed(2)}s + ${z.strafzeit.toFixed(0)}s = ${z.gesamtzeit.toFixed(2)}s</span>
+        </div>`).join('') +
+      `<div class="z-best">⭐ ${besteRunde.toFixed(2)}s</div>`;
+  } catch(e) {}
+}
+
+// ── Admin Aktionen ─────────────────────────────────────────────
+function showMsg(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  if (ok) setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+}
+
+async function adminZeit() {
   const fahrer_id = parseInt(document.getElementById('zeitFahrerId').value);
-  const rundenzeit = parseFloat(document.getElementById('rundenzeit').value);
-  if (!fahrer_id || !rundenzeit) return showMsg('zeitMsg', 'Alle Felder ausfüllen!', false);
+  const rundenzeit = parseFloat(document.getElementById('zeitRunde').value);
+  if (!fahrer_id || !rundenzeit) return showMsg('zeitMsg', 'Alle Felder ausfüllen.', false);
   try {
-    const res = await fetch('' + API + '/zeiten', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({fahrer_id, rundenzeit, strafzeit: 0})
+    const r = await fetch(API + '/zeiten', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ fahrer_id, rundenzeit, strafzeit: 0 }),
     });
-    const data = await res.json();
-    if (!res.ok) return showMsg('zeitMsg', data.detail, false);
-    showMsg('zeitMsg', `✓ Zeit gespeichert! Gesamtzeit: ${data.gesamtzeit.toFixed(2)}s`, true);
+    const d = await r.json();
+    if (!r.ok) return showMsg('zeitMsg', d.detail, false);
+    showMsg('zeitMsg', `✓ Zeit: ${d.gesamtzeit.toFixed(2)}s gespeichert`, true);
     document.getElementById('zeitFahrerId').value = '';
-    document.getElementById('rundenzeit').value = '';
-  } catch(e) { showMsg('zeitMsg', 'Server nicht erreichbar.', false); }
+    document.getElementById('zeitRunde').value = '';
+    // Reload fahrer zeiten if panel open
+    const panel = document.getElementById('panel-' + fahrer_id);
+    if (panel && panel.style.display === 'block') loadFahrerZeiten(fahrer_id);
+  } catch(e) { showMsg('zeitMsg', 'Fehler.', false); }
 }
 
-async function checkin() {
-  const id = parseInt(document.getElementById('checkinId').value);
-  if (!id) return showMsg('checkinMsg', 'Fahrer-ID eingeben!', false);
-  try {
-    const res = await fetch(`${API}/checkin/${id}`, {method: 'POST'});
-    const data = await res.json();
-    if (!res.ok) return showMsg('checkinMsg', data.detail, false);
-    showMsg('checkinMsg', `✓ ${data.message}`, true);
-    document.getElementById('checkinId').value = '';
-    faehrerLaden();
-  } catch(e) { showMsg('checkinMsg', 'Server nicht erreichbar.', false); }
+function strafPreview() {
+  const val = document.getElementById('strafSelect').value;
+  const box = document.getElementById('strafPreviewBox');
+  if (!val) { box.style.display = 'none'; return; }
+  const [sek, grund] = val.split('|');
+  document.getElementById('strafGrundText').textContent = grund;
+  document.getElementById('strafSekText').textContent = '+' + sek + 's';
+  box.style.display = 'block';
 }
 
-async function strafzeit() {
+async function adminStraf() {
   const fahrer_id = parseInt(document.getElementById('strafFahrerId').value);
-  const sel = document.getElementById('strafVergehen').value;
-  if (!fahrer_id) return showMsg('strafMsg', 'Fahrer-ID eingeben!', false);
-  if (!sel) return showMsg('strafMsg', 'Vergehen auswählen!', false);
-  const [sekStr, grund] = sel.split('|');
-  const strafzeit = parseFloat(sekStr);
+  const val = document.getElementById('strafSelect').value;
+  if (!fahrer_id) return showMsg('strafMsg', 'Fahrer-ID eingeben.', false);
+  if (!val) return showMsg('strafMsg', 'Vergehen auswählen.', false);
+  const [sekStr, grund] = val.split('|');
   try {
-    const res = await fetch('' + API + '/strafzeiten', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({fahrer_id, strafzeit, grund})
+    const r = await fetch(API + '/strafzeiten', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ fahrer_id, strafzeit: parseFloat(sekStr), grund }),
     });
-    const data = await res.json();
-    if (!res.ok) return showMsg('strafMsg', data.detail, false);
-    showMsg('strafMsg', `✓ ${data.message}`, true);
+    const d = await r.json();
+    if (!r.ok) return showMsg('strafMsg', d.detail, false);
+    showMsg('strafMsg', '✓ ' + d.message, true);
     document.getElementById('strafFahrerId').value = '';
-    document.getElementById('strafVergehen').value = '';
-    document.getElementById('strafPreview').style.display = 'none';
-  } catch(e) { showMsg('strafMsg', 'Server nicht erreichbar.', false); }
+    document.getElementById('strafSelect').value = '';
+    document.getElementById('strafPreviewBox').style.display = 'none';
+  } catch(e) { showMsg('strafMsg', 'Fehler.', false); }
 }
 
-async function rennAbschliessen() {
-  if (!confirm('Rennen wirklich abschließen? Danach können keine Zeiten mehr eingetragen werden!')) return;
+async function adminCheckin() {
+  const id = parseInt(document.getElementById('checkinId').value);
+  if (!id) return showMsg('checkinMsg', 'Fahrer-ID eingeben.', false);
   try {
-    const res = await fetch('' + API + '/rennen/abschliessen', {method: 'POST'});
-    const data = await res.json();
-    if (!res.ok) return showMsg('abschlussMsg', data.detail, false);
-    showMsg('abschlussMsg', '✓ ' + data.message, true);
-    statusLaden();
-  } catch(e) { showMsg('abschlussMsg', 'Server nicht erreichbar.', false); }
+    const r = await fetch(`${API}/checkin/${id}`, { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) return showMsg('checkinMsg', d.detail, false);
+    showMsg('checkinMsg', '✓ ' + d.message, true);
+    document.getElementById('checkinId').value = '';
+    loadFahrer();
+  } catch(e) { showMsg('checkinMsg', 'Fehler.', false); }
 }
 
-async function rennReset() {
+async function adminAbschluss() {
+  if (!confirm('Rennen wirklich abschließen? Danach keine neuen Zeiten mehr möglich.')) return;
+  try {
+    const r = await fetch(API + '/rennen/abschliessen', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token },
+    });
+    const d = await r.json();
+    if (!r.ok) return showMsg('abschlussMsg', d.detail, false);
+    showMsg('abschlussMsg', '✓ ' + d.message, true);
+    loadStatus();
+  } catch(e) { showMsg('abschlussMsg', 'Fehler.', false); }
+}
+
+async function adminReset() {
   if (!confirm('Rennen wieder öffnen?')) return;
   try {
-    const res = await fetch('' + API + '/rennen/reset', {method: 'POST'});
-    const data = await res.json();
-    showMsg('abschlussMsg', '✓ ' + data.message, true);
-    statusLaden();
-  } catch(e) { showMsg('abschlussMsg', 'Server nicht erreichbar.', false); }
+    const r = await fetch(API + '/rennen/reset', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token },
+    });
+    const d = await r.json();
+    showMsg('abschlussMsg', '✓ ' + d.message, true);
+    loadStatus();
+  } catch(e) { showMsg('abschlussMsg', 'Fehler.', false); }
 }
-
-statusLaden();
-faehrerLaden();
 </script>
 </body>
 </html>

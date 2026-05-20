@@ -3,260 +3,358 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RC-Car Rally — Leaderboard</title>
+<title>Rangliste — PMK RC-Car Rally</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #F0F0F0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+:root {
+  --bg:#09090B; --surface:#18181B; --surface2:#27272A; --border:#3F3F46;
+  --gold:#F59E0B; --gold-dim:#92400E; --text:#FAFAFA; --muted:#A1A1AA; --dim:#71717A;
+  --green:#22C55E; --green-bg:#14532D; --red:#EF4444; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
 
-  /* ── Top-Navigation ── */
-  .topnav {
-    background: #1E1E1E;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 52px;
-    flex-shrink: 0;
-  }
-  .topnav-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-    font-weight: 700;
-    font-size: 15px;
-    text-decoration: none;
-  }
-  .topnav-brand span { color: #C8A415; }
-  .topnav-links { display: flex; gap: 4px; }
-  .topnav-links a {
-    color: #AAA;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background 0.15s, color 0.15s;
-  }
-  .topnav-links a:hover { background: #2E2E2E; color: white; }
-  .topnav-links a.active { background: #C8A415; color: #1E1E1E; }
+/* Nav */
+.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:32px;}
+.nav-brand{font-size:17px;font-weight:800;} .nav-brand em{color:var(--gold);font-style:normal;}
+.nav-links{display:flex;gap:4px;flex:1;}
+.nav-links a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s;}
+.nav-links a:hover{color:var(--text);background:var(--surface2);} .nav-links a.active{color:var(--text);}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold);}
+.btn-outline{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;transition:border-color .15s,color .15s;}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+.btn-gold{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:700;background:var(--gold);color:#09090B;border:none;cursor:pointer;transition:opacity .15s;}
+.btn-gold:hover{opacity:.85;}
 
-  /* ── Content ── */
-  .page-body { flex: 1; padding: 28px 20px; max-width: 800px; margin: 0 auto; width: 100%; }
+/* Page */
+.page{max-width:900px;margin:0 auto;padding:32px 24px 64px;}
 
-  .lb-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .lb-header h1 { font-size: 22px; color: #1E1E1E; font-weight: 800; }
-  .lb-header p { font-size: 13px; color: #999; margin-top: 2px; }
-  .lb-controls { display: flex; align-items: center; gap: 10px; }
-  .live-dot {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 13px; color: #2E7D32; font-weight: 700;
-    background: #E8F5E9; padding: 5px 12px; border-radius: 20px;
-  }
-  .live-dot::before {
-    content: '';
-    width: 8px; height: 8px;
-    background: #2E7D32;
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-  .refresh-btn {
-    background: white;
-    border: 1.5px solid #E0E0E0;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    color: #555;
-    font-weight: 600;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .refresh-btn:hover { border-color: #C8A415; color: #C8A415; }
+/* Header */
+.lb-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.lb-title{font-size:22px;font-weight:900;}
+.lb-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 
-  .card {
-    background: white;
-    border-radius: 14px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    overflow: hidden;
-  }
-  .table-header {
-    display: grid;
-    grid-template-columns: 64px 1fr 80px 100px 130px;
-    padding: 12px 20px;
-    background: #1E1E1E;
-    color: #AAA;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 64px 1fr 80px 100px 130px;
-    padding: 14px 20px;
-    border-bottom: 1px solid #F2F2F2;
-    align-items: center;
-    transition: background 0.12s;
-  }
-  .row:hover { background: #FAFAFA; }
-  .row:last-child { border-bottom: none; }
-  .row.first { background: #FFFBEB; }
-  .row.second { background: #F8F8F8; }
-  .row.third { background: #FFF8F0; }
-  .place { font-size: 22px; font-weight: 900; color: #CCC; }
-  .place.p1 { color: #C8A415; }
-  .place.p2 { color: #888; }
-  .place.p3 { color: #CD7F32; }
-  .name { font-weight: 700; color: #1E1E1E; font-size: 15px; }
-  .fahrzeug { font-size: 12px; color: #999; margin-top: 2px; }
-  .laeufe {
-    font-size: 13px;
-    color: #888;
-    font-weight: 600;
-    text-align: center;
-  }
-  .checkin {
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 700;
-    display: inline-block;
-  }
-  .checkin.ja { background: #E8F5E9; color: #2E7D32; }
-  .checkin.nein { background: #F5F5F5; color: #AAA; }
-  .zeit {
-    font-family: 'Courier New', monospace;
-    font-size: 15px;
-    font-weight: 700;
-    color: #1E1E1E;
-    text-align: right;
-  }
-  .zeit.keine { color: #CCC; font-size: 13px; font-family: inherit; font-weight: 400; }
-  .straf { font-size: 11px; color: #C62828; font-weight: 600; margin-top: 2px; text-align: right; }
-  .empty { text-align: center; padding: 60px 20px; color: #AAA; }
-  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+/* Race selector */
+.race-select-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.race-select-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.race-select-card select{flex:1;min-width:200px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);outline:none;transition:border-color .15s;cursor:pointer;}
+.race-select-card select:focus{border-color:var(--gold);}
+.race-select-card select option{background:var(--surface);}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--green);font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.countdown{font-size:12px;color:var(--dim);}
+.countdown span{color:var(--gold);font-weight:700;font-family:monospace;}
+.refresh-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s;}
+.refresh-btn:hover{border-color:var(--gold);color:var(--gold);}
 
-  @media (max-width: 600px) {
-    .table-header { grid-template-columns: 48px 1fr 110px; }
-    .table-header .col-laeufe, .table-header .col-status { display: none; }
-    .row { grid-template-columns: 48px 1fr 110px; }
-    .row .col-laeufe, .row .col-status { display: none; }
-    .topnav-links a { padding: 6px 8px; font-size: 12px; }
-  }
+/* Status banner */
+.status-banner{padding:11px 16px;border-radius:9px;font-size:13px;font-weight:700;margin-bottom:16px;display:none;}
+.status-banner.laufend{background:rgba(34,197,94,.08);color:#86EFAC;border:1px solid rgba(34,197,94,.25);}
+.status-banner.abgeschlossen{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+
+/* Race info bar */
+.race-info-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:none;gap:24px;flex-wrap:wrap;}
+.race-info-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);}
+.race-info-item strong{color:var(--text);}
+
+/* Table */
+.lb-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.lb-head{display:grid;grid-template-columns:54px 1fr 80px 110px 80px 120px;padding:10px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+.lb-row{display:grid;grid-template-columns:54px 1fr 80px 110px 80px 120px;padding:14px 18px;border-bottom:1px solid var(--surface);align-items:center;transition:background .12s;}
+.lb-row:last-child{border-bottom:none;}
+.lb-row:hover{background:var(--surface2);}
+.lb-row.gold{background:rgba(245,158,11,.06);}
+.lb-row.silver{background:rgba(148,163,184,.04);}
+.lb-row.bronze{background:rgba(205,127,50,.05);}
+.lb-row.gold:hover{background:rgba(245,158,11,.1);}
+
+.place{font-size:22px;font-weight:900;}
+.place.p1{color:var(--gold);}
+.place.p2{color:#94A3B8;}
+.place.p3{color:#CD7F32;}
+.place.other{font-size:14px;color:var(--dim);font-family:monospace;}
+
+.driver-name{font-weight:700;font-size:14px;}
+.driver-sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.driver-nr{font-size:11px;color:var(--muted);}
+
+.col-center{text-align:center;}
+.col-right{text-align:right;}
+
+.laeufe{font-size:13px;color:var(--muted);font-weight:600;}
+.ci-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.ci-badge.ja{background:var(--green-bg);color:var(--green);}
+.ci-badge.nein{background:var(--surface2);color:var(--dim);border:1px solid var(--border);}
+
+.zeit-val{font-family:'Courier New',monospace;font-size:13px;font-weight:700;}
+.zeit-val.none{font-family:inherit;font-weight:400;font-size:13px;color:var(--border);}
+.straf-val{font-size:11px;color:var(--red);margin-top:2px;font-weight:600;}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--dim);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+
+/* No race selected */
+.no-race{text-align:center;padding:60px 20px;color:var(--dim);}
+
+footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--dim);}
+
+@media(max-width:640px){
+  .nav-links{display:none;}
+  .lb-head{grid-template-columns:44px 1fr 80px 100px;}
+  .lb-head .col-laeufe,.lb-head .col-runde{display:none;}
+  .lb-row{grid-template-columns:44px 1fr 80px 100px;}
+  .lb-row .col-laeufe,.lb-row .col-runde{display:none;}
+  .page{padding:20px 14px 48px;}
+}
 </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="topnav-brand" href="index.html">🏁 RC-Car <span>Rally</span></a>
-  <div class="topnav-links">
-    <a href="index.html">Registrierung</a>
-    <a href="leaderboard.html" class="active">Leaderboard</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="kamera.html">Kamera</a>
+<nav class="nav">
+  <a href="index.html" class="nav-brand">🏁 PMK RC-Car <em>Rally</em></a>
+  <div class="nav-links">
+    <a href="index.html">Rennen</a>
+    <a href="leaderboard.html" class="active">Rangliste</a>
+    <span id="navProfilLink" style="display:none"><a href="profil.html">Mein Profil</a></span>
+    <span id="navAdminLink" style="display:none"><a href="admin.html">Admin</a></span>
+  </div>
+  <div class="nav-right" id="navGuest">
+    <a href="index.html"><button class="btn-gold">Anmelden</button></a>
+  </div>
+  <div class="nav-right" id="navUser" style="display:none">
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatar">?</div>
+      <span id="navName"></span>
+    </div>
   </div>
 </nav>
 
-<div class="page-body">
+<div class="page">
   <div class="lb-header">
     <div>
-      <h1>Live-Leaderboard</h1>
-      <p>RC-Car Rally 2026 — PMK</p>
+      <div class="lb-title">Live-Rangliste</div>
+      <div class="lb-sub">PMK RC-Car Rally 2026</div>
     </div>
-    <div class="lb-controls">
-      <div class="live-dot">Live</div>
-      <button class="refresh-btn" onclick="laden()">↻ Aktualisieren</button>
+    <div class="header-right">
+      <div class="live-pill"><div class="live-dot"></div>Live</div>
+      <div class="countdown">↻ in <span id="countdown">5</span>s</div>
+      <button class="refresh-btn" onclick="laden()">↻ Jetzt</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="table-header">
+  <!-- Race selector -->
+  <div class="race-select-card">
+    <span class="race-select-label">Rennen</span>
+    <select id="rennenSel" onchange="onRennenChange()">
+      <option value="">— Rennen laden... —</option>
+    </select>
+  </div>
+
+  <!-- Race info bar -->
+  <div class="race-info-bar" id="raceInfoBar">
+    <div class="race-info-item">📅 <strong id="infoDate"></strong></div>
+    <div class="race-info-item">📍 <strong id="infoOrt"></strong></div>
+    <div class="race-info-item">👥 <strong id="infoTeilnehmer"></strong></div>
+  </div>
+
+  <!-- Status banner -->
+  <div class="status-banner" id="statusBanner"></div>
+
+  <!-- No race hint -->
+  <div class="no-race" id="noRaceHint">
+    <div style="font-size:36px;margin-bottom:12px">🏁</div>
+    <p>Wähle oben ein Rennen aus, um die Rangliste zu sehen.</p>
+  </div>
+
+  <!-- Leaderboard table -->
+  <div class="lb-card" id="lbCard" style="display:none">
+    <div class="lb-head">
       <span>Platz</span>
       <span>Fahrer</span>
-      <span class="col-laeufe" style="text-align:center">Läufe</span>
-      <span class="col-status">Status</span>
-      <span style="text-align:right">Beste Zeit</span>
+      <span class="col-center col-laeufe">Läufe</span>
+      <span class="col-center col-runde">Beste Runde</span>
+      <span class="col-center">Check-in</span>
+      <span class="col-right">Beste Gesamt</span>
     </div>
-    <div id="leaderboardBody">
-      <div class="empty">
-        <div class="icon">⏳</div>
-        <p>Wird geladen...</p>
-      </div>
+    <div id="lbBody">
+      <div class="empty-state"><div class="empty-icon">⏳</div><p>Wird geladen...</p></div>
     </div>
   </div>
 </div>
 
-<script>
-const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : window.location.origin;
+<footer>PMK RC-Car Rally 2026 · automatische Aktualisierung alle 5 Sekunden · <a href="faq.html" style="color:var(--gold)">FAQ</a> · <a href="impressum.html" style="color:var(--dim)">Impressum</a></footer>
 
-function formatZeit(sek) {
-  if (sek === null || sek === undefined) return null;
-  const min = Math.floor(sek / 60);
-  const s = (sek % 60).toFixed(2);
-  return min > 0 ? `${min}:${s.padStart(5,'0')} min` : `${s} s`;
+<script>
+const API = window.location.origin;
+let currentRennenId = null;
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('rally_session')||'null'); } catch { return null; }
 }
 
-async function laden() {
-  try {
-    const res = await fetch(API + '/leaderboard');
-    const daten = await res.json();
-    const body = document.getElementById('leaderboardBody');
-
-    if (daten.length === 0) {
-      body.innerHTML = `<div class="empty"><div class="icon">🏎️</div><p>Noch keine Fahrer registriert.</p></div>`;
-      return;
-    }
-
-    const plaetze = ['🥇','🥈','🥉'];
-    const klassen = ['first','second','third'];
-
-    body.innerHTML = daten.map((f, i) => {
-      const platzIcon = i < 3 ? plaetze[i] : (i+1);
-      const platzKlasse = i < 3 ? klassen[i] : '';
-      const platzTextKlasse = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : '';
-      const zeitStr = formatZeit(f.beste_gesamtzeit);
-      const strafStr = f.gesamt_strafzeit > 0 ? `+${f.gesamt_strafzeit}s Strafe` : '';
-      return `
-        <div class="row ${platzKlasse}">
-          <span class="place ${platzTextKlasse}">${platzIcon}</span>
-          <div>
-            <div class="name">${f.name}</div>
-            <div class="fahrzeug">${f.fahrzeug} · #${f.startnummer}</div>
-          </div>
-          <div class="laeufe col-laeufe">${f.anzahl_laeufe}</div>
-          <div class="col-status">
-            <span class="checkin ${f.eingecheckt ? 'ja' : 'nein'}">
-              ${f.eingecheckt ? '✓ Eingecheckt' : 'Ausstehend'}
-            </span>
-          </div>
-          <div>
-            <div class="zeit ${zeitStr ? '' : 'keine'}">${zeitStr || '—'}</div>
-            ${strafStr ? `<div class="straf">${strafStr}</div>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('leaderboardBody').innerHTML =
-      `<div class="empty"><div class="icon">⚠️</div><p>Server nicht erreichbar.</p></div>`;
+function applySession() {
+  const s = getSession();
+  if (s?.token) {
+    document.getElementById('navGuest').style.display = 'none';
+    document.getElementById('navUser').style.display = 'flex';
+    document.getElementById('navName').textContent = s.name;
+    document.getElementById('navAvatar').textContent = s.name.charAt(0).toUpperCase();
+    document.getElementById('navProfilLink').style.display = 'inline';
+    if (s.rolle === 'admin') document.getElementById('navAdminLink').style.display = 'inline';
   }
 }
 
-laden();
-setInterval(laden, 5000);
+function fmtZeit(s) {
+  if (s === null || s === undefined) return null;
+  const m = Math.floor(s / 60), r = (s % 60).toFixed(3);
+  return m > 0 ? `${m}:${r.padStart(6,'0')} min` : `${r} s`;
+}
+
+function fmtDatum(datum, uhrzeit) {
+  if (!datum) return '–';
+  try {
+    const d = new Date(datum + 'T' + (uhrzeit||'00:00'));
+    return d.toLocaleDateString('de-DE', {day:'2-digit',month:'long',year:'numeric'}) + (uhrzeit ? ' · ' + uhrzeit + ' Uhr' : '');
+  } catch { return datum; }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadRennenList() {
+  try {
+    const r = await fetch(API + '/rennen');
+    const rennen = await r.json();
+    const sel = document.getElementById('rennenSel');
+    sel.innerHTML = '<option value="">— Rennen wählen —</option>' +
+      rennen.map(r => `<option value="${r.id}">${escHtml(r.name)} (${r.datum||'?'}) ${r.status==='laufend'?'● ':r.status==='abgeschlossen'?'✓ ':''}</option>`).join('');
+
+    // URL-Parameter: ?rennen=ID
+    const params = new URLSearchParams(location.search);
+    const paramId = params.get('rennen');
+    if (paramId) {
+      sel.value = paramId;
+      onRennenChange();
+    } else if (rennen.length) {
+      // Auto-select laufendes oder erstes Rennen
+      const laufend = rennen.find(r => r.status === 'laufend');
+      const first = laufend || rennen[0];
+      sel.value = first.id;
+      onRennenChange();
+    }
+  } catch {
+    document.getElementById('rennenSel').innerHTML = '<option value="">Fehler beim Laden</option>';
+  }
+}
+
+function onRennenChange() {
+  const id = parseInt(document.getElementById('rennenSel').value) || null;
+  currentRennenId = id;
+  if (!id) {
+    document.getElementById('noRaceHint').style.display = 'block';
+    document.getElementById('lbCard').style.display = 'none';
+    document.getElementById('raceInfoBar').style.display = 'none';
+    document.getElementById('statusBanner').style.display = 'none';
+    return;
+  }
+  document.getElementById('noRaceHint').style.display = 'none';
+  document.getElementById('lbCard').style.display = 'block';
+  laden();
+}
+
+async function laden() {
+  if (!currentRennenId) return;
+  try {
+    const [lr, rr] = await Promise.all([
+      fetch(API + '/rennen/' + currentRennenId + '/leaderboard'),
+      fetch(API + '/rennen/' + currentRennenId),
+    ]);
+    const daten = await lr.json();
+    const rennen = await rr.json();
+
+    // Race info bar
+    const bar = document.getElementById('raceInfoBar');
+    document.getElementById('infoDate').textContent = fmtDatum(rennen.datum, rennen.uhrzeit);
+    const ortEl = document.getElementById('infoOrt');
+    if (rennen.ort_link) {
+      ortEl.innerHTML = `<a href="${escHtml(rennen.ort_link)}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:underline;text-underline-offset:2px">${escHtml(rennen.ort||'–')} ↗</a>`;
+    } else {
+      ortEl.textContent = rennen.ort || '–';
+    }
+    document.getElementById('infoTeilnehmer').textContent = rennen.teilnehmer_count + ' / ' + rennen.max_teilnehmer + ' Fahrer';
+    bar.style.display = 'flex';
+
+    // Status banner
+    const banner = document.getElementById('statusBanner');
+    if (rennen.status === 'laufend') {
+      banner.textContent = '🟢 Rennen läuft — Ergebnisse werden live aktualisiert';
+      banner.className = 'status-banner laufend';
+      banner.style.display = 'block';
+    } else if (rennen.status === 'abgeschlossen') {
+      banner.textContent = '🏁 Rennen abgeschlossen — Endgültige Ergebnisse';
+      banner.className = 'status-banner abgeschlossen';
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+
+    // Leaderboard body
+    const body = document.getElementById('lbBody');
+    if (!daten.length) {
+      body.innerHTML = '<div class="empty-state"><div class="empty-icon">🏎️</div><p>Noch keine Fahrer angemeldet.</p></div>';
+      return;
+    }
+    const rowCls = ['gold','silver','bronze'];
+    const icons = ['🥇','🥈','🥉'];
+    body.innerHTML = daten.map((f, i) => {
+      const cls = i < 3 ? rowCls[i] : '';
+      const platz = i < 3
+        ? `<span class="place p${i+1}">${icons[i]}</span>`
+        : `<span class="place other">${i+1}.</span>`;
+      const gesamt = fmtZeit(f.beste_gesamtzeit);
+      const runde  = fmtZeit(f.beste_rundenzeit);
+      const straf  = f.gesamt_strafzeit > 0 ? `<div class="straf-val">+${f.gesamt_strafzeit}s Strafe</div>` : '';
+      return `
+        <div class="lb-row ${cls}">
+          <div>${platz}</div>
+          <div>
+            <div class="driver-name">${escHtml(f.name)}</div>
+            <div class="driver-sub">${escHtml(f.fahrzeug)}</div>
+            <div class="driver-nr">#${f.startnummer}</div>
+          </div>
+          <div class="col-center col-laeufe"><span class="laeufe">${f.anzahl_laeufe}</span></div>
+          <div class="col-center col-runde"><span class="zeit-val ${runde?'':'none'}">${runde||'—'}</span></div>
+          <div class="col-center">
+            <span class="ci-badge ${f.eingecheckt?'ja':'nein'}">${f.eingecheckt?'✓ Ja':'Ausstehend'}</span>
+          </div>
+          <div class="col-right">
+            <div class="zeit-val ${gesamt?'':'none'}">${gesamt||'—'}</div>
+            ${straf}
+          </div>
+        </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('lbBody').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Server nicht erreichbar</p></div>';
+  }
+}
+
+// 5s Auto-Refresh
+let tick = 5;
+function countdownTick() {
+  tick--;
+  document.getElementById('countdown').textContent = tick;
+  if (tick <= 0) { tick = 5; laden(); }
+}
+
+applySession();
+loadRennenList();
+setInterval(countdownTick, 1000);
 </script>
 </body>
 </html>

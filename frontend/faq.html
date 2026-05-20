@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infos & FAQ — PMK RC-Car Rally</title>
+<style>
+:root {
+  --bg:#09090B; --surface:#18181B; --surface2:#27272A; --border:#3F3F46;
+  --gold:#F59E0B; --gold-dim:#92400E; --text:#FAFAFA; --muted:#A1A1AA; --dim:#71717A;
+  --green:#22C55E; --green-bg:#14532D; --red:#EF4444; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+
+.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 24px;gap:32px;}
+.nav-brand{font-size:17px;font-weight:800;} .nav-brand em{color:var(--gold);font-style:normal;}
+.nav-links{display:flex;gap:4px;flex:1;}
+.nav-links a{font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s;}
+.nav-links a:hover{color:var(--text);background:var(--surface2);}
+.nav-links a.active{color:var(--text);}
+
+/* Hero */
+.hero{background:linear-gradient(180deg,rgba(245,158,11,.07) 0%,transparent 100%);border-bottom:1px solid var(--border);padding:52px 24px 40px;text-align:center;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:var(--gold);font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:16px;text-transform:uppercase;letter-spacing:.6px;}
+.hero h1{font-size:clamp(26px,5vw,40px);font-weight:900;}
+.hero h1 em{color:var(--gold);font-style:normal;}
+.hero p{color:var(--muted);font-size:16px;margin-top:10px;max-width:540px;margin-left:auto;margin-right:auto;line-height:1.6;}
+
+/* TOC */
+.toc{max-width:760px;margin:32px auto 0;padding:0 24px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.toc a{font-size:13px;font-weight:600;padding:7px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--muted);transition:border-color .15s,color .15s;}
+.toc a:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Page */
+.page{max-width:760px;margin:0 auto;padding:48px 24px 72px;}
+
+/* Section */
+.section{margin-bottom:52px;}
+.section-anchor{display:block;height:80px;margin-top:-80px;visibility:hidden;}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.section-icon{width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.section-title{font-size:20px;font-weight:800;}
+.section-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:0;}
+.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--surface2);}
+.step:last-child{border-bottom:none;}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold);flex-shrink:0;margin-top:2px;}
+.step-body h3{font-size:14px;font-weight:700;margin-bottom:4px;}
+.step-body p{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* Cards grid */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.info-card-icon{font-size:24px;margin-bottom:8px;}
+.info-card h3{font-size:13px;font-weight:700;margin-bottom:6px;}
+.info-card p{font-size:12px;color:var(--muted);line-height:1.6;}
+
+/* Checklist */
+.checklist{display:flex;flex-direction:column;gap:8px;}
+.check-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;}
+.check-item.must{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05);}
+.check-item.good{border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04);}
+.check-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.check-dot.must{background:rgba(245,158,11,.2);color:var(--gold);}
+.check-dot.good{background:rgba(34,197,94,.15);color:var(--green);}
+.check-item-text h4{font-size:13px;font-weight:700;}
+.check-item-text p{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5;}
+
+/* Penalty table */
+.penalty-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+.penalty-table th{background:var(--bg);padding:9px 14px;font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--border);}
+.penalty-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--surface2);}
+.penalty-table tr:last-child td{border-bottom:none;}
+.penalty-table tr:hover td{background:var(--surface2);}
+.penalty-val{font-family:'Courier New',monospace;font-weight:700;color:var(--red);}
+
+/* FAQ accordion */
+.faq-list{display:flex;flex-direction:column;gap:8px;}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.faq-q{width:100%;text-align:left;padding:15px 18px;background:none;border:none;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:background .15s;}
+.faq-q:hover{background:var(--surface2);}
+.faq-q .arrow{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.faq-q.open .arrow{transform:rotate(180deg);}
+.faq-a{display:none;padding:0 18px 15px;font-size:13px;color:var(--muted);line-height:1.7;}
+.faq-a.open{display:block;}
+
+/* CTA */
+.cta-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:14px;padding:28px;text-align:center;margin-top:16px;}
+.cta-box h3{font-size:18px;font-weight:800;margin-bottom:8px;}
+.cta-box p{color:var(--muted);font-size:14px;margin-bottom:18px;}
+.btn-gold{display:inline-block;padding:11px 28px;border-radius:9px;background:var(--gold);color:#09090B;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s;}
+.btn-gold:hover{opacity:.85;}
+
+footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;font-size:12px;color:var(--dim);}
+footer a{color:var(--gold);}
+
+@media(max-width:600px){
+  .nav-links{display:none;}
+  .page{padding:32px 16px 56px;}
+  .cards-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">🏁 PMK RC-Car <em>Rally</em></a>
+  <div class="nav-links">
+    <a href="index.html">Rennen</a>
+    <a href="leaderboard.html">Rangliste</a>
+    <a href="faq.html" class="active">Infos & FAQ</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">📋 Informationen</div>
+  <h1>Infos & <em>FAQ</em></h1>
+  <p>Alles was du wissen musst — wie Rennen ablaufen, was du mitbringen sollst und Antworten auf häufige Fragen.</p>
+</div>
+
+<nav class="toc" aria-label="Inhaltsübersicht">
+  <a href="#ablauf">Ablauf</a>
+  <a href="#anmeldung">Anmeldung</a>
+  <a href="#mitnehmen">Was mitbringen?</a>
+  <a href="#regeln">Regeln & Strafen</a>
+  <a href="#technik">Technik</a>
+  <a href="#faq">FAQ</a>
+</nav>
+
+<div class="page">
+
+  <!-- ── Ablauf ── -->
+  <div class="section">
+    <span class="section-anchor" id="ablauf"></span>
+    <div class="section-header">
+      <div class="section-icon">🏁</div>
+      <div>
+        <div class="section-title">Ablauf eines Rennens</div>
+        <div class="section-sub">Von der Anmeldung bis zur Siegerehrung</div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Online-Anmeldung</h3>
+          <p>Registriere dich auf dieser Website, erstelle ein Konto und melde dein RC-Fahrzeug für das gewünschte Rennen an. Du erhältst deine Startnummer sofort nach der Anmeldung.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Ankunft & Check-in</h3>
+          <p>Komme mindestens 30 Minuten vor dem Start an. Melde dich beim Check-in-Tisch — ein Admin scannt deinen QR-Code oder bestätigt deine Startnummer manuell. Erst nach dem Check-in bist du offiziell startberechtigt.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Fahrermeeting</h3>
+          <p>Ca. 15 Minuten vor dem Start findet ein kurzes Fahrermeeting statt. Streckenführung, Regeln und besondere Hindernisse werden erklärt. Anwesenheit ist Pflicht.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Trainingsläufe</h3>
+          <p>Je nach verfügbarer Zeit gibt es 1–2 Trainingsrunden zum Kennenlernen der Strecke. Trainingszeiten fließen nicht in die Wertung ein.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Wertungsläufe</h3>
+          <p>Jeder Fahrer absolviert mehrere Wertungsläufe. Die gemessene Zeit beginnt beim Passieren von Tor 1 (Start) und endet beim letzten Tor (Ziel). Strafzeiten für Regelverstöße werden zur Rundenzeit addiert. Die beste Gesamtzeit zählt für die Wertung.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>Ergebnisse & Siegerehrung</h3>
+          <p>Nach Abschluss aller Läufe werden die Ergebnisse auf der Live-Rangliste veröffentlicht. Die Top 3 erhalten eine Auszeichnung. Alle Ergebnisse sind als PDF exportierbar.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Anmeldung ── -->
+  <div class="section">
+    <span class="section-anchor" id="anmeldung"></span>
+    <div class="section-header">
+      <div class="section-icon">📝</div>
+      <div>
+        <div class="section-title">Anmeldung</div>
+        <div class="section-sub">So meldest du dich für ein Rennen an</div>
+      </div>
+    </div>
+    <div class="cards-grid">
+      <div class="info-card">
+        <div class="info-card-icon">👤</div>
+        <h3>Konto erstellen</h3>
+        <p>Einmalig registrieren mit Name, E-Mail und Passwort. Dein Konto kannst du für alle zukünftigen Rennen nutzen.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">🏎️</div>
+        <h3>Fahrzeug angeben</h3>
+        <p>Bei jeder Renn-Anmeldung gibst du deine Fahrzeugbezeichnung an. So weiß die Rennleitung, was auf der Strecke ist.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">🔢</div>
+        <h3>Startnummer</h3>
+        <p>Du erhältst automatisch eine Startnummer. Diese gilt für das jeweilige Rennen und kann nicht getauscht werden.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">✅</div>
+        <h3>Check-in vor Ort</h3>
+        <p>Am Renntag check-in beim Admin. Danach bist du offiziell in der Startliste und deine Zeiten werden erfasst.</p>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:14px 16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;color:#86EFAC;">
+      💡 <strong>Tipp:</strong> Anmeldungen sind möglich solange das Rennen den Status <em>„Offen"</em> hat. Sobald das Rennen gestartet wird, sind keine Neuanmeldungen mehr möglich.
+    </div>
+  </div>
+
+  <!-- ── Was mitbringen ── -->
+  <div class="section">
+    <span class="section-anchor" id="mitnehmen"></span>
+    <div class="section-header">
+      <div class="section-icon">🎒</div>
+      <div>
+        <div class="section-title">Was mitbringen?</div>
+        <div class="section-sub">Checkliste für den Renntag</div>
+      </div>
+    </div>
+    <div class="checklist">
+      <div class="check-item must">
+        <div class="check-dot must">★</div>
+        <div class="check-item-text">
+          <h4>RC-Fahrzeug (fahrbereit)</h4>
+          <p>Fahrzeug muss vor dem Start fahrtüchtig sein. Defekte Fahrzeuge können nicht kurzfristig repariert werden — komme vorbereitet.</p>
+        </div>
+      </div>
+      <div class="check-item must">
+        <div class="check-dot must">★</div>
+        <div class="check-item-text">
+          <h4>Vollgeladene Akkus (mind. 2 Stück)</h4>
+          <p>Für mehrere Wertungsläufe werden ausreichend geladene Akkus benötigt. Ein Akku pro Lauf ist Minimum — lieber mehr mitnehmen.</p>
+        </div>
+      </div>
+      <div class="check-item must">
+        <div class="check-dot must">★</div>
+        <div class="check-item-text">
+          <h4>Passendes Ladegerät</h4>
+          <p>Strom ist vor Ort verfügbar. Bring dein Ladegerät mit, um Akkus zwischen den Läufen nachladen zu können.</p>
+        </div>
+      </div>
+      <div class="check-item must">
+        <div class="check-dot must">★</div>
+        <div class="check-item-text">
+          <h4>Sender / Fernsteuerung</h4>
+          <p>Kontrolliere vorher ob die Frequenz deiner Fernsteuerung konfliktfrei ist. Bei Funkkonflikten mit anderen Fahrern entscheidet die Rennleitung.</p>
+        </div>
+      </div>
+      <div class="check-item good">
+        <div class="check-dot good">✓</div>
+        <div class="check-item-text">
+          <h4>Ersatzteile & Werkzeug</h4>
+          <p>Schraubenzieher, Inbusschlüssel, Reserveservos oder -räder können bei einem Sturz Leben retten. Kleine Reparaturen sind zwischen den Läufen erlaubt.</p>
+        </div>
+      </div>
+      <div class="check-item good">
+        <div class="check-dot good">✓</div>
+        <div class="check-item-text">
+          <h4>Startnummern-Aufkleber</h4>
+          <p>Deine Startnummer wird vorab kommuniziert. Es empfiehlt sich, sie am Fahrzeug sichtbar anzubringen.</p>
+        </div>
+      </div>
+      <div class="check-item good">
+        <div class="check-dot good">✓</div>
+        <div class="check-item-text">
+          <h4>Wetter-gerechte Kleidung</h4>
+          <p>Rennen finden bei jedem Wetter statt (außer bei Gewitter). Bring festes Schuhwerk und bei schlechtem Wetter Regenschutz mit.</p>
+        </div>
+      </div>
+      <div class="check-item good">
+        <div class="check-dot good">✓</div>
+        <div class="check-item-text">
+          <h4>Verpflegung & Getränke</h4>
+          <p>Je nach Veranstaltungsort ist eine Verpflegungsstation vorhanden. Zur Sicherheit eigene Getränke mitbringen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Regeln & Strafen ── -->
+  <div class="section">
+    <span class="section-anchor" id="regeln"></span>
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-title">Regeln & Strafzeiten</div>
+        <div class="section-sub">Verstöße werden zur gemessenen Zeit addiert</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+      Die Rennleitung überwacht alle Läufe und vergibt bei Verstößen Strafzeiten. Diese werden zur Rundenzeit addiert. Ziel ist ein fairer Wettbewerb — die Regeln gelten für alle gleich.
+    </p>
+    <table class="penalty-table">
+      <thead>
+        <tr>
+          <th>Vergehen</th>
+          <th>Strafzeit</th>
+          <th>Erläuterung</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Tor verfehlt</td><td class="penalty-val">+5s</td><td style="color:var(--muted);font-size:12px">Fahrzeug fährt nicht durch das vorgesehene Tor</td></tr>
+        <tr><td>Fahrzeug berührt</td><td class="penalty-val">+3s</td><td style="color:var(--muted);font-size:12px">Berühren eines Tors, einer Absperrung oder eines Hindernisses</td></tr>
+        <tr><td>Kurs verlassen</td><td class="penalty-val">+10s</td><td style="color:var(--muted);font-size:12px">Fahrzeug verlässt den markierten Kurs vollständig</td></tr>
+        <tr><td>Falscher Weg</td><td class="penalty-val">+10s</td><td style="color:var(--muted);font-size:12px">Tore werden nicht in der vorgeschriebenen Reihenfolge passiert</td></tr>
+        <tr><td>Kollision</td><td class="penalty-val">+5s</td><td style="color:var(--muted);font-size:12px">Absichtliches Rammen eines anderen Fahrzeugs</td></tr>
+        <tr><td>Frühstart</td><td class="penalty-val">+3s</td><td style="color:var(--muted);font-size:12px">Fahrzeug bewegt sich vor dem Startsignal</td></tr>
+        <tr><td>Fahrfehler</td><td class="penalty-val">+2s</td><td style="color:var(--muted);font-size:12px">Kleinere Fehler nach Ermessen der Rennleitung</td></tr>
+        <tr><td>Disqualifikation</td><td class="penalty-val">+60s</td><td style="color:var(--muted);font-size:12px">Schwere Verstöße oder wiederholte Regelverletzungen</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;padding:12px 15px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);">
+      ⚖️ Entscheidungen der Rennleitung sind endgültig. Bei Protesten ist der Einspruch direkt nach dem Lauf beim Rennleiter zu stellen.
+    </div>
+  </div>
+
+  <!-- ── Technik ── -->
+  <div class="section">
+    <span class="section-anchor" id="technik"></span>
+    <div class="section-header">
+      <div class="section-icon">🔧</div>
+      <div>
+        <div class="section-title">Technische Anforderungen</div>
+        <div class="section-sub">Was ist erlaubt, was nicht?</div>
+      </div>
+    </div>
+    <div class="cards-grid">
+      <div class="info-card">
+        <div class="info-card-icon">📏</div>
+        <h3>Maßstab</h3>
+        <p>Alle gängigen Maßstäbe sind erlaubt (1:10, 1:8, 1:12 etc.). Der Maßstab beeinflusst nicht die Wertung — Fahrkönnen zählt.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">⚡</div>
+        <h3>Antrieb</h3>
+        <p>Elektro- und Verbrennerfahrzeuge sind gleichermaßen zugelassen. Bei Verbrennern: ausreichend Kraftstoff mitbringen.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">📡</div>
+        <h3>Frequenz</h3>
+        <p>2,4-GHz-Systeme werden empfohlen. Ältere 27/40-MHz-Systeme nur nach Absprache mit der Rennleitung.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon">🚫</div>
+        <h3>Nicht erlaubt</h3>
+        <p>FPV-Kameras im aktiven Rennen, Fahrzeuge ohne Fernsteuerung (autonom), beschädigte Fahrzeuge die eine Gefahr darstellen.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FAQ ── -->
+  <div class="section">
+    <span class="section-anchor" id="faq"></span>
+    <div class="section-header">
+      <div class="section-icon">❓</div>
+      <div>
+        <div class="section-title">Häufige Fragen</div>
+        <div class="section-sub">FAQ</div>
+      </div>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Kann ich mich noch am Renntag anmelden?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Kurzfristige Anmeldungen sind grundsätzlich möglich, solange das Rennen noch den Status „Offen" hat. Sobald der Admin das Rennen startet, sind keine neuen Anmeldungen mehr möglich. Komme frühzeitig an, damit der Check-in rechtzeitig abgeschlossen werden kann.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Was passiert wenn mein Fahrzeug ausfällt?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Wenn dein Fahrzeug während eines Laufs ausfällt, wird der Lauf abgebrochen und nicht gewertet. Du kannst dein Fahrzeug reparieren und bei den verbleibenden Läufen wieder antreten. Laufende Läufe können nicht wiederholt werden.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Wie wird die Rangliste berechnet?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Die Wertung basiert auf der <strong>besten Gesamtzeit</strong> eines Fahrers. Gesamtzeit = Rundenzeit + alle Strafzeiten. Wer die schnellste Gesamtzeit erzielt, gewinnt. Fahrer ohne gewerteten Lauf erscheinen in der Rangliste ohne Zeit.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Findet das Rennen bei Regen statt?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Ja, Rennen finden grundsätzlich bei jedem Wetter statt — außer bei Gewitter oder extremen Bedingungen, die eine Gefahr darstellen. Bei Absage wird dies frühzeitig über diese Website kommuniziert. Bringe daher wettergerechte Kleidung mit.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Darf ich mehrere Fahrzeuge mitbringen?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Du kannst beliebig viele Fahrzeuge mitbringen, aber pro Anmeldung wird genau ein Fahrzeug für die Wertung genutzt. Ein Fahrzeugwechsel zwischen den Läufen ist nur nach Absprache mit der Rennleitung erlaubt.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Gibt es eine Alterbeschränkung?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Es gibt keine offizielle Altersbeschränkung. Kinder und Jugendliche sind herzlich willkommen — unter 14 Jahren in Begleitung eines Erziehungsberechtigten, der ebenfalls für den Bereich der Strecke verantwortlich ist.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Wie kann ich meine Zeiten einsehen?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Alle Zeiten werden live in der <a href="leaderboard.html" style="color:var(--gold)">Rangliste</a> angezeigt und alle 5 Sekunden aktualisiert. In deinem <a href="profil.html" style="color:var(--gold)">Profil</a> findest du eine Übersicht deiner angemeldeten Rennen und deiner besten Zeit.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Was passiert mit meinen Daten?
+          <span class="arrow">▼</span>
+        </button>
+        <div class="faq-a">
+          Deine Daten (Name, E-Mail, Fahrzeugbezeichnung) werden ausschließlich für die Durchführung der Rennen verwendet. Nach dem Event werden alle personenbezogenen Daten gelöscht. Die Verarbeitung erfolgt auf Basis deiner Einwilligung gemäß DSGVO. Weitere Infos im <a href="impressum.html" style="color:var(--gold)">Impressum</a>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h3>Bereit loszulegen?</h3>
+    <p>Registriere dich jetzt und melde dein RC-Fahrzeug für das nächste Rennen an.</p>
+    <a href="index.html"><button class="btn-gold">Zu den Rennen →</button></a>
+  </div>
+
+</div>
+
+<footer>
+  PMK RC-Car Rally 2026 ·
+  <a href="index.html">Rennen</a> ·
+  <a href="leaderboard.html">Rangliste</a> ·
+  <a href="faq.html">FAQ</a> ·
+  <a href="impressum.html">Impressum</a>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  const answer = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  // close all
+  document.querySelectorAll('.faq-q.open').forEach(b => {
+    b.classList.remove('open');
+    b.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    btn.classList.add('open');
+    answer.classList.add('open');
+  }
+}
+</script>
+</body>
+</html>
