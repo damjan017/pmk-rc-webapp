@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/backend/data
+    environment:
+      - GMAIL_USER=${GMAIL_USER:-pmkrccarrally@gmail.com}
+      - GMAIL_APP_PW=${GMAIL_APP_PW:-}
+      - APP_URL=${APP_URL:-http://localhost:8000}
+      - ANZAHL_TORE=${ANZAHL_TORE:-6}
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    profiles:
+      - dev
