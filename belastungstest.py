@@ -120,17 +120,11 @@ for i in range(1, 26):
     r = requests.post(f"{BACKEND}/auth/register", json={
         "name": name, "email": email, "passwort": pw, "einwilligung": True
     })
-    # 200 = neu, 400 = schon vorhanden → dann einloggen
-    if r.status_code == 200:
-        data = r.json()
-        fahrer_tokens[i] = data["token"]
-        fahrer_ids[i]    = data["user"]["id"]
-    else:
-        # schon vorhanden → einloggen
-        r2 = requests.post(f"{BACKEND}/auth/login", json={"email": email, "passwort": pw})
-        if r2.status_code == 200:
-            fahrer_tokens[i] = r2.json()["token"]
-            fahrer_ids[i]    = r2.json()["user"]["id"]
+    # Register gibt nur id zurück → danach immer einloggen
+    r2 = requests.post(f"{BACKEND}/auth/login", json={"email": email, "passwort": pw})
+    if r2.status_code == 200:
+        fahrer_tokens[i] = r2.json()["token"]
+        fahrer_ids[i]    = r2.json()["id"]
 
 print(f"{ok} {len(fahrer_tokens)}/25 Fahrer eingeloggt")
 results["passed"] += 1
@@ -306,8 +300,11 @@ check("Excel→CSV Import", r)
 
 if r.status_code == 200:
     data = r.json()
-    log(f"Importiert: {len(data.get('imported', []))} Fahrer | "
-        f"Fehler: {len(data.get('errors', []))}")
+    imported = data.get('imported', [])
+    errors_l  = data.get('errors', [])
+    n_imp = imported if isinstance(imported, int) else len(imported)
+    n_err = errors_l  if isinstance(errors_l,  int) else len(errors_l)
+    log(f"Importiert: {n_imp} Fahrer | Fehler: {n_err}")
 
 # ── 11. Gleichzeitigkeitstest ─────────────────────────────────
 separator("11. GLEICHZEITIGKEITSTEST (10 parallele Requests)")
