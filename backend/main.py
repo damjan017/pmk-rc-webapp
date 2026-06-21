@@ -526,9 +526,10 @@ def rennen_starten(rennen_id: int, admin: User = Depends(_require_admin)):
         db.close()
         raise HTTPException(404, "Rennen nicht gefunden")
     r.status = "laufend"
+    r_name = r.name
     db.commit()
     db.close()
-    return {"message": f"Rennen '{r.name}' gestartet"}
+    return {"message": f"Rennen '{r_name}' gestartet"}
 
 @app.post("/rennen/{rennen_id}/abschliessen")
 def rennen_abschliessen(rennen_id: int, admin: User = Depends(_require_admin)):
@@ -538,9 +539,10 @@ def rennen_abschliessen(rennen_id: int, admin: User = Depends(_require_admin)):
         db.close()
         raise HTTPException(404, "Rennen nicht gefunden")
     r.status = "abgeschlossen"
+    r_name = r.name
     db.commit()
     db.close()
-    return {"message": f"Rennen '{r.name}' abgeschlossen"}
+    return {"message": f"Rennen '{r_name}' abgeschlossen"}
 
 @app.post("/rennen/{rennen_id}/reset")
 def rennen_reset(rennen_id: int, admin: User = Depends(_require_admin)):
@@ -550,9 +552,10 @@ def rennen_reset(rennen_id: int, admin: User = Depends(_require_admin)):
         db.close()
         raise HTTPException(404, "Rennen nicht gefunden")
     r.status = "offen"
+    r_name = r.name
     db.commit()
     db.close()
-    return {"message": f"Rennen '{r.name}' wieder geöffnet"}
+    return {"message": f"Rennen '{r_name}' wieder geöffnet"}
 
 @app.delete("/rennen/{rennen_id}/zeiten")
 def zeiten_loeschen(rennen_id: int, admin: User = Depends(_require_admin)):

@@ -1,7 +1,18 @@
-"""Admin-Passwort zurücksetzen: python reset_admin.py"""
+"""
+Admin-Account erstellen oder zuruecksetzen.
+
+Verwendung:
+  python reset_admin.py            -> erstellt/setzt Standard-Admin (admin@pmk.de / Admin2026!)
+  python reset_admin.py --custom   -> interaktive Eingabe
+"""
 import hashlib, sys
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+# Standard-Admin-Zugangsdaten
+DEFAULT_EMAIL    = "admin@pmk.de"
+DEFAULT_PASSWORT = "Admin2026!"
+DEFAULT_NAME     = "PMK Admin"
 
 engine = create_engine("sqlite:///./rally.db", connect_args={"check_same_thread": False})
 Base = declarative_base()
@@ -15,23 +26,34 @@ class User(Base):
     rolle         = Column(String)
     token         = Column(String, nullable=True)
 
+Base.metadata.create_all(bind=engine)
 Session = sessionmaker(bind=engine)
-db = Session()
 
-email = input("Admin E-Mail: ").strip().lower()
-user  = db.query(User).filter(User.email == email).first()
+def sha256(s): return hashlib.sha256(s.encode()).hexdigest()
 
-if not user:
-    print(f"Kein User mit E-Mail '{email}' gefunden.")
-    sys.exit(1)
+custom = "--custom" in sys.argv
 
-pw = input("Neues Passwort: ").strip()
-if not pw:
-    print("Passwort darf nicht leer sein.")
-    sys.exit(1)
+if custom:
+    email    = input("Admin E-Mail: ").strip().lower()
+    pw       = input("Neues Passwort: ").strip()
+    name     = input("Name (leer = 'PMK Admin'): ").strip() or DEFAULT_NAME
+else:
+    email, pw, name = DEFAULT_EMAIL, DEFAULT_PASSWORT, DEFAULT_NAME
+    print(f"Standard-Admin: {email} / {pw}")
 
-user.passwort_hash = hashlib.sha256(pw.encode()).hexdigest()
-user.rolle         = "admin"
-user.token         = None
-db.commit()
-print(f"✅ {user.name} ({email}) ist jetzt Admin.")
+if not email or not pw:
+    print("Abgebrochen."); sys.exit(1)
+
+db   = Session()
+user = db.query(User).filter(User.email == email).first()
+if user:
+    user.passwort_hash = sha256(pw); user.rolle = "admin"; user.token = None; user.name = name
+    db.commit()
+    print(f"\nOK Admin aktualisiert: {name} ({email})")
+else:
+    db.add(User(name=name, email=email, passwort_hash=sha256(pw), rolle="admin"))
+    db.commit()
+    print(f"\nOK Admin erstellt: {name} ({email})")
+db.close()
+print(f"\nLogin:       http://localhost:5173/login")
+print(f"Admin-Panel: http://localhost:5173/admin")
